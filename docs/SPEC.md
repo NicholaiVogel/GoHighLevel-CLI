@@ -39,7 +39,7 @@ agents a working CRM spine before we bolt on every last GHL subsystem.
 
 ## Implementation Status Snapshot
 
-Last updated: 2026-04-16 during the opportunities and pipelines read slice.
+Last updated: 2026-04-16 during the read-only smoke runner slice.
 
 Implemented so far:
 
@@ -57,6 +57,7 @@ Implemented so far:
 - CRM read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
 - Conversation message bodies and preview bodies are redacted from normal response output.
 - Opportunity notes are redacted from normal response output.
+- Read-only `smoke run` validates auth, context, and safe CRM reads while printing only statuses, counts, and error codes.
 
 Remaining initial implementation priorities:
 
@@ -68,8 +69,8 @@ Remaining initial implementation priorities:
 - Per-location rate limiting, retries, and read-only caching.
 - Agent-safe write policy with dry-run, confirmation flags, and destructive
   guards.
-- Remaining initial command groups: calendars, workflows read, smoke run,
-  broader contact/opportunity subcommands, and guarded messaging.
+- Remaining initial command groups: calendars, workflows read, broader
+  contact/opportunity subcommands, and guarded messaging.
 
 ## 1. Product Summary
 
@@ -555,7 +556,7 @@ ghl dev scan-fixtures <path>
 
 ghl signet doctor
 
-ghl smoke run [--skip-writes] [--include-internal]
+ghl smoke run [--limit <n>] [--skip-optional]
 ghl smoke seed [--dry-run] [--yes]
 ghl smoke cleanup --before <datetime> [--dry-run] --yes
 
@@ -1924,7 +1925,7 @@ ghl-cli-smoke
 ### 31.2 Smoke commands
 
 ```bash
-ghl smoke run [--skip-writes] [--include-internal] [--include-messaging-dry-run]
+ghl smoke run [--limit <n>] [--skip-optional]
 ghl smoke seed [--dry-run] [--yes]
 ghl smoke cleanup --before <datetime> [--dry-run] --yes
 ```
@@ -2827,31 +2828,62 @@ Requirements:
 ## 61. Smoke Test Feature Spec
 
 ```bash
-ghl smoke run [--skip-writes] [--include-internal] [--include-messaging-dry-run]
+ghl smoke run [--limit <n>] [--skip-optional] \
+  [--contact-query <query>] \
+  [--contact-email <email>] \
+  [--contact-phone <phone>] \
+  [--contact-id <id>] \
+  [--conversation-id <id>] \
+  [--pipeline-id <id>] \
+  [--opportunity-id <id>]
 ```
 
-Smoke output:
+Smoke output is status-only. It must not include response bodies or customer
+records.
 
 ```json
 {
   "ok": true,
+  "mode": "live",
   "profile": "default",
   "location_id": "location-id",
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 6,
+    "planned": 0
+  },
   "checks": [
-    { "name": "auth.status", "status": "passed" },
-    { "name": "locations.get", "status": "passed" },
-    { "name": "contacts.search", "status": "passed", "count": 3 }
+    { "name": "auth.status", "status": "passed", "required": true },
+    { "name": "locations.get", "status": "passed", "required": true, "http_status": 200 },
+    { "name": "contacts.search", "status": "skipped", "required": false }
   ]
 }
 ```
 
+Required checks are read-only and run by default:
+
+- `auth.status`
+- `context.location`
+- `locations.get`
+- `pipelines.list`
+- `conversations.search`
+- `opportunities.search`
+
+`locations.list` runs when company context is available. Optional read checks run
+only when the user supplies a matching search filter or known test resource id.
+
 Requirements:
 
-- Required checks are read-only.
-- Optional write checks must use dry-run unless the user passes explicit flags.
 - Output must not include contact names, phone numbers, emails, message text,
-  invoice links, PIT tokens, or workflow bodies.
-- Internal checks run only with `--include-internal`.
+  opportunity notes, invoice links, PIT tokens, workflow bodies, or raw response
+  bodies.
+- Dry-run mode reports planned checks without requiring credentials or network
+  access when explicit context is supplied.
+- Default live smoke performs no writes, no SMS/email sends, no invoices, no
+  workflow execution, and no phone purchases.
+- Optional checks must be skipped rather than failing the whole run when the
+  caller has not supplied the needed test id or filter.
 
 ## 62. Command Metadata Feature Spec
 
@@ -3339,7 +3371,6 @@ references.
 - Implement opportunity search/get.
 - Implement pipeline list/get.
 - Implement calendars and appointments.
-- Implement smoke run.
 - Implement pagination normalization for all MVP list commands.
 - Implement audit journal for MVP write commands and sensitive dry-runs.
 - Implement idempotency and duplicate-prevention preflights for contacts,

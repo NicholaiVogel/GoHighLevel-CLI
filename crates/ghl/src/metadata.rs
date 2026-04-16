@@ -294,6 +294,25 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             "2",
             &["opportunities.get"],
         ),
+        remote_pit(
+            "smoke.run",
+            "smoke run [--limit <n>] [--skip-optional]",
+            "Run safe read-only smoke checks against the selected profile and location without printing customer data.",
+            "SmokeRunReport",
+            "2",
+            &[
+                "locations.get",
+                "locations.search",
+                "contacts.search",
+                "contacts.get",
+                "conversations.search",
+                "conversations.get",
+                "conversations.messages",
+                "pipelines.list",
+                "opportunities.search",
+                "opportunities.get",
+            ],
+        ),
         local(
             "completions.bash",
             "completions bash",
@@ -421,6 +440,7 @@ mod tests {
         assert!(keys.contains(&"pipelines.get"));
         assert!(keys.contains(&"opportunities.search"));
         assert!(keys.contains(&"opportunities.get"));
+        assert!(keys.contains(&"smoke.run"));
         assert!(keys.contains(&"errors.list"));
         assert!(keys.contains(&"endpoints.coverage"));
         assert!(keys.contains(&"completions.bash"));
@@ -445,7 +465,8 @@ mod tests {
                 | "pipelines.list"
                 | "pipelines.get"
                 | "opportunities.search"
-                | "opportunities.get" => {
+                | "opportunities.get"
+                | "smoke.run" => {
                     assert!(!command.offline, "{}", command.command_key);
                     assert_eq!(command.auth_classes, vec!["pit".to_owned()]);
                 }

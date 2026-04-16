@@ -91,6 +91,7 @@ It gives you:
 | Conversations | Search by contact/query/status, get one conversation, list messages with bodies redacted |
 | Pipelines | List pipelines; get one pipeline by id from the location pipeline list |
 | Opportunities | Search by contact/pipeline/stage/status; get one opportunity by id |
+| Smoke | Read-only `smoke run` with status/count output and no customer data |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
 | Metadata | Command schema, endpoint manifest, error registry, shell completions |
@@ -150,7 +151,26 @@ Validate it with the safest live request we have:
 ./target/debug/ghl --profile default auth pit validate --pretty
 ```
 
-Then fetch the location through the typed command:
+Then run the read-only smoke runner. It prints statuses and counts, not
+customer records:
+
+```bash
+./target/debug/ghl --profile default smoke run --pretty
+```
+
+If you have known test resource IDs, you can include optional read checks:
+
+```bash
+./target/debug/ghl --profile default smoke run \
+  --contact-email test@example.com \
+  --contact-id <contact-id> \
+  --conversation-id <conversation-id> \
+  --pipeline-id <pipeline-id> \
+  --opportunity-id <opportunity-id> \
+  --pretty
+```
+
+You can also fetch individual resources through the typed commands:
 
 ```bash
 ./target/debug/ghl --profile default locations get <location-id> --pretty
@@ -180,6 +200,7 @@ access, use local dry-run:
 ./target/debug/ghl --location <location-id> contacts search "Sarah" --dry-run=local
 ./target/debug/ghl --location <location-id> conversations search --dry-run=local
 ./target/debug/ghl --location <location-id> opportunities search --dry-run=local
+./target/debug/ghl --location <location-id> smoke run --dry-run=local --pretty
 ```
 
 ## Current command surface
@@ -223,6 +244,8 @@ ghl pipelines get <pipeline-id>
 
 ghl opportunities search [--contact <contact-id>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--status open|won|lost|abandoned|all] [--limit <n>]
 ghl opportunities get <opportunity-id>
+
+ghl smoke run [--limit <n>] [--skip-optional]
 
 ghl raw request --surface services --method get --path /locations/<location-id>
 ghl raw request --surface backend --method get --path <path>
@@ -316,6 +339,7 @@ Implemented now:
 - Typed `contacts search` and `contacts get`.
 - Typed `conversations search`, `conversations get`, and `conversations messages`.
 - Typed `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
+- Read-only `smoke run` for safe real-account validation.
 - Endpoint manifest seed.
 - Command metadata.
 - Stable error registry.
@@ -324,12 +348,11 @@ Implemented now:
 
 Current focus:
 
-- smoke runner for safe real-account validation
+- first real GHL account validation with a dedicated test location
 - stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend
 - Signet secret references
-- smoke runner for safe real-account validation
 
 Future feature planning lives in [`docs/ROADMAP.md`](docs/ROADMAP.md) and the
 full product contract lives in [`docs/SPEC.md`](docs/SPEC.md).
@@ -362,7 +385,7 @@ cargo build --workspace
 Run a network-free smoke preview:
 
 ```bash
-./target/debug/ghl locations get loc_test --dry-run=local
+./target/debug/ghl --location loc_test smoke run --dry-run=local --pretty
 ```
 
 ## License

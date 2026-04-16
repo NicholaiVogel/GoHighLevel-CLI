@@ -18,6 +18,7 @@ pub mod opportunities;
 pub mod pipelines;
 pub mod profiles;
 pub mod redaction;
+pub mod smoke;
 pub mod surfaces;
 
 pub use auth::{
@@ -69,5 +70,9 @@ pub use profiles::{
     Profile, ProfileCompanyResult, ProfileDefaultResult, ProfileList, ProfileLocationResult,
     ProfilePolicy, ProfilePolicyPatch, ProfilesFile, load_profiles, save_profiles,
     set_default_company, set_default_location, set_default_profile,
+};
+pub use smoke::{
+    SmokeCheck, SmokeCheckStatus, SmokeRunMode, SmokeRunOptions, SmokeRunReport, SmokeSummary,
+    smoke_run, smoke_run_dry_run,
 };
 pub use surfaces::Surface;

@@ -8,7 +8,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
     bin_name = "ghl",
     version,
     about = "Unofficial Go High Level CLI for humans, scripts, and AI agents.",
-    long_about = "Unofficial Go High Level CLI for humans, scripts, and AI agents.\n\nThe current implementation provides the local CLI spine, profile persistence, local PIT credential storage, guarded read-only PIT validation, raw GET, typed location reads, and typed contact reads."
+    long_about = "Unofficial Go High Level CLI for humans, scripts, and AI agents.\n\nThe current implementation provides the local CLI spine, profile persistence, local PIT credential storage, guarded read-only PIT validation, raw GET, typed CRM reads, and read-only smoke validation."
 )]
 pub struct Cli {
     #[arg(long, global = true, env = "GHL_CLI_PROFILE")]
@@ -107,6 +107,9 @@ pub enum Command {
 
     #[command(subcommand)]
     Opportunities(OpportunitiesCommand),
+
+    #[command(subcommand)]
+    Smoke(SmokeCommand),
 
     Completions(CompletionsArgs),
 
@@ -483,6 +486,41 @@ pub struct OpportunitySearchArgs {
 #[derive(Debug, Args)]
 pub struct OpportunityGetArgs {
     pub opportunity_id: String,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum SmokeCommand {
+    Run(SmokeRunArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct SmokeRunArgs {
+    #[arg(long, default_value_t = 1)]
+    pub limit: u32,
+
+    #[arg(long, default_value_t = false)]
+    pub skip_optional: bool,
+
+    #[arg(long)]
+    pub contact_query: Option<String>,
+
+    #[arg(long)]
+    pub contact_email: Option<String>,
+
+    #[arg(long)]
+    pub contact_phone: Option<String>,
+
+    #[arg(long)]
+    pub contact_id: Option<String>,
+
+    #[arg(long)]
+    pub conversation_id: Option<String>,
+
+    #[arg(long)]
+    pub pipeline_id: Option<String>,
+
+    #[arg(long)]
+    pub opportunity_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]

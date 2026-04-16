@@ -8,7 +8,7 @@ use commands::{
     AuthCommand, AuthPitAddArgs, AuthPitCommand, Cli, Command, CommandsCommand, ConfigCommand,
     ContactsCommand, ConversationsCommand, EndpointsCommand, ErrorsCommand, LocationsCommand,
     OpportunitiesCommand, PipelinesCommand, ProfilePolicyCommand, ProfilePolicySetArgs,
-    ProfilesCommand, RawCommand,
+    ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -574,6 +574,35 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+        Command::Smoke(SmokeCommand::Run(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = smoke_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::smoke_run_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        selected_company.as_deref(),
+                        options,
+                    ),
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::smoke_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        selected_company.as_deref(),
+                        options,
+                    ),
+                    format,
+                    pretty,
+                )
+            }
+        }
         Command::Completions(args) => {
             let mut command = Cli::command();
             let shell: clap_complete::Shell = args.shell.into();
@@ -676,6 +705,20 @@ fn set_policy(paths: &ghl::ConfigPaths, args: ProfilePolicySetArgs) -> Result<gh
     Ok(policy)
 }
 
+fn smoke_options(args: SmokeRunArgs) -> ghl::SmokeRunOptions {
+    ghl::SmokeRunOptions {
+        limit: args.limit,
+        skip_optional: args.skip_optional,
+        contact_query: args.contact_query,
+        contact_email: args.contact_email,
+        contact_phone: args.contact_phone,
+        contact_id: args.contact_id,
+        conversation_id: args.conversation_id,
+        pipeline_id: args.pipeline_id,
+        opportunity_id: args.opportunity_id,
+    }
+}
+
 fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) -> bool {
     if dry_run.is_some() {
         return true;
@@ -690,6 +733,7 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
             | Command::Conversations(_)
             | Command::Pipelines(_)
             | Command::Opportunities(_)
+            | Command::Smoke(_)
     )
 }
 
@@ -707,6 +751,7 @@ fn command_name(command: &Command) -> String {
         Command::Conversations(_) => "conversations".to_owned(),
         Command::Pipelines(_) => "pipelines".to_owned(),
         Command::Opportunities(_) => "opportunities".to_owned(),
+        Command::Smoke(_) => "smoke".to_owned(),
         Command::Completions(_) => "completions".to_owned(),
         Command::Man => "man".to_owned(),
     }

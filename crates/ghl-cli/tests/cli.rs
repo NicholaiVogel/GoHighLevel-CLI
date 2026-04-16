@@ -763,6 +763,55 @@ fn opportunities_get_dry_run_requires_location_context() {
 }
 
 #[test]
+fn smoke_run_dry_run_reports_statuses_without_customer_data() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "--company",
+            "company_123",
+            "smoke",
+            "run",
+            "--limit",
+            "5",
+            "--contact-email",
+            "person@example.com",
+            "--contact-id",
+            "contact_123",
+            "--conversation-id",
+            "conv_123",
+            "--pipeline-id",
+            "pipe_123",
+            "--opportunity-id",
+            "opp_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let rendered = String::from_utf8_lossy(&output);
+    let value: Value = serde_json::from_slice(&output).expect("json");
+    let checks = value["data"]["checks"].as_array().unwrap();
+
+    assert_eq!(value["data"]["ok"], true);
+    assert_eq!(value["data"]["mode"], "dry_run");
+    assert_eq!(value["data"]["location_id"], "loc_123");
+    assert_eq!(value["data"]["company_id"], "company_123");
+    assert!(checks.iter().any(|check| check["name"] == "locations.get"
+        && check["status"] == "planned"
+        && check["required"] == true));
+    assert!(checks.iter().any(|check| check["name"] == "contacts.search"
+        && check["status"] == "planned"
+        && check["required"] == false));
+    assert!(!rendered.contains("person@example.com"));
+}
+
+#[test]
 fn profiles_set_default_company_persists_context() {
     let temp = tempfile::tempdir().expect("tempdir");
     ghl_cli()
@@ -932,5 +981,10 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "opportunities.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "smoke.run")
     );
 }
