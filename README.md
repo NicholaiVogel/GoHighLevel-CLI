@@ -1,33 +1,179 @@
-# Go High Level CLI
+<h1 align="center">
+  <img src="https://ghlcentral.com/wp-content/uploads/2024/01/HighLevel_Logo_Classic_black_transparent_1-1024x203.webp" alt="HighLevel" height="72" align="center" />
+  &nbsp;ghl
+</h1>
 
-`ghl-cli` is an unofficial local command line client for Go High Level, built for humans, shell scripts, and AI agents that need stable JSON access to CRM and agency operations.
+<p align="center">
+  <strong>Give agents and scripts a safe command-line handle on GoHighLevel.</strong>
+</p>
 
-Status: Phase 1 auth/profile and HTTP spine, with the first Phase 2 read-only location command. The current implementation can persist profiles, store local PIT credential references, validate a PIT with an explicit read-only request, run guarded raw GET requests, and fetch one location by id.
+<p align="center">
+  An unofficial, local-first CLI for GoHighLevel CRM and agency operations,
+  built for stable JSON output, guarded automation, and headless agent runtimes.
+</p>
 
-## Install from source
+<p align="center">
+  <a href="https://github.com/NicholaiVogel/GoHighLevel-CLI/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/NicholaiVogel/GoHighLevel-CLI/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Status" src="https://img.shields.io/badge/status-early_MVP-111111">
+  <img alt="Rust" src="https://img.shields.io/badge/rust-CLI-b7410e">
+  <img alt="Unofficial" src="https://img.shields.io/badge/HighLevel-unofficial-111111">
+</p>
+
+> [!NOTE]
+> This is an unofficial community project. It is not affiliated with,
+> endorsed by, sponsored by, or maintained by HighLevel, GoHighLevel,
+> LeadConnector, or any related company. The HighLevel logo is used only to
+> identify the service this client talks to.
+
+`ghl` turns GoHighLevel into something agents, shell scripts, CI jobs, and
+terminal-native workflows can call safely. It uses existing GHL HTTP APIs,
+stores credentials locally, returns stable JSON, and puts a narrow command
+surface between automation and your CRM.
+
+The project is early, but the shape is intentional: start with auth, profiles,
+read-only smoke tests, endpoint metadata, and redaction. Then add CRM coverage
+one guarded slice at a time.
+
+## Lineage and attribution
+
+This CLI is based on the API map and automation blueprint from
+[`BusyBee3333/Go-High-Level-MCP-2026-Complete`](https://github.com/BusyBee3333/Go-High-Level-MCP-2026-Complete).
+That project made the broad GoHighLevel surface legible: hundreds of tools,
+auth patterns, endpoint notes, and working examples across the GHL ecosystem.
+
+Credit for that expanded 2026 blueprint goes to **Jake Shore**
+([`@BusyBee3333`](https://github.com/BusyBee3333)), a friend and collaborator.
+The upstream MCP project also credits
+[`@mastanley13`](https://github.com/mastanley13) for the original foundation.
+
+This repository is the CLI adaptation of that work. The goal is not to erase or
+rename the blueprint. The goal is to turn it into a polished local command-line
+client with tighter safety boundaries, stable output contracts, tests, docs,
+and agent-friendly behavior.
+
+## Why this exists
+
+GoHighLevel already has the CRM, conversations, opportunities, calendars,
+forms, automations, payments, reporting, and agency operations people want to
+wire into scripts. The hard part is not that the APIs do not exist. The hard
+part is giving agents and operators a command surface they can trust.
+
+Raw API access gives an agent too much rope. A hosted MCP server is powerful,
+but it is not always the right boundary for local automation, CI, SSH sessions,
+or audited workflows.
+
+`ghl` is that boundary.
+
+It gives you:
+
+- **Local control:** credentials stay on the machine running the CLI.
+- **Agent-ready output:** JSON by default, command metadata, and stable error
+  envelopes.
+- **Narrow live testing:** start with read-only validation before touching real
+  CRM data.
+- **Guarded expansion:** write commands will arrive behind dry-run, policy,
+  confirmation, and audit behavior.
+- **Reference-backed coverage:** endpoint work is mapped back to the 2026 MCP
+  reference, the internal API bible, and `docs/SPEC.md`.
+- **Portable invocation:** short `ghl` for daily use, explicit `ghl-cli` for
+  scripts and documentation.
+
+## What it can do today
+
+| Area | Current support |
+| --- | --- |
+| Config | Resolve config/data/cache/audit paths, show redacted config, local doctor |
+| Profiles | Create through auth, list, show, set default, set default location |
+| PIT auth | Store local Private Integration Token references, list redacted previews, remove local refs |
+| Live validation | Validate PIT with `GET /locations/{location_id}` without printing the body |
+| Locations | Fetch one location by id with redacted output |
+| Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
+| Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
+| Metadata | Command schema, endpoint manifest, error registry, shell completions |
+| Docs | Product spec, command reference, network notes, smoke guide, coverage plan |
+
+The current implementation is intentionally small. It can connect to a test
+location and prove the auth path works, but broad CRM reads and all writes are
+still being built.
+
+## Quick start
+
+Build from source:
 
 ```bash
 cargo build --workspace
-cargo run -p ghl-cli -- commands schema --pretty
 ```
 
-The workspace builds two binaries:
+Use either command name:
 
-- `ghl-cli`
-- `ghl`
+```bash
+./target/debug/ghl --help
+./target/debug/ghl-cli --help
+```
 
-## Current commands
+Inspect the machine-readable command schema:
+
+```bash
+./target/debug/ghl commands schema --pretty
+```
+
+## Connect a GoHighLevel location
+
+For the current live smoke path, you need two things:
+
+1. A dedicated test Location ID.
+2. A Private Integration Token with the smallest useful read scope, starting
+   with location read access.
+
+In GoHighLevel, create a Private Integration from the location settings, copy
+the generated token, and keep it out of chat logs and shell history. Prefer a
+password manager, Signet secret injection, or an environment variable.
+
+Store the token locally:
+
+```bash
+export GHL_PIT="your-private-integration-token"
+
+./target/debug/ghl --profile default auth pit add \
+  --token-env GHL_PIT \
+  --location <location-id>
+```
+
+Validate it with the safest live request we have:
+
+```bash
+./target/debug/ghl --profile default auth pit validate --pretty
+```
+
+Then fetch the location through the typed command:
+
+```bash
+./target/debug/ghl --profile default locations get <location-id> --pretty
+```
+
+If you only want to preview the request shape without credentials or network
+access, use local dry-run:
+
+```bash
+./target/debug/ghl locations get <location-id> --dry-run=local
+```
+
+## Current command surface
 
 ```bash
 ghl commands schema
+
 ghl config path
 ghl config show
 ghl config doctor
+
 ghl auth pit add --token-stdin --location <location-id>
+ghl auth pit add --token-env GHL_PIT --location <location-id>
 ghl auth pit validate
 ghl auth pit list-local
 ghl auth pit remove-local <credential-ref>
 ghl auth status
+
 ghl profiles list
 ghl profiles show <name>
 ghl profiles set-default <name>
@@ -35,22 +181,134 @@ ghl profiles set-default-location <name> <location-id>
 ghl profiles policy show <name>
 ghl profiles policy set <name> [...flags]
 ghl profiles policy reset <name> --yes
+
+ghl locations get <location-id>
+
+ghl raw request --surface services --method get --path /locations/<location-id>
+ghl raw request --surface backend --method get --path <path>
+
 ghl errors list
 ghl errors show <error-code>
 ghl endpoints list
 ghl endpoints show <endpoint-key>
 ghl endpoints coverage
-ghl raw request --surface services --method get --path /locations/<location-id> --dry-run=local
-ghl locations get <location-id>
+
 ghl completions bash|zsh|fish|powershell
 ghl man
 ```
 
-## Safety note
+## Built for agents
 
-This project is unofficial and is not affiliated with Go High Level. Network behavior is intentionally narrow: read-only PIT validation, raw GET, and typed `locations get` only. Future slices will add broader HTTP behavior and guarded CRM commands from `docs/SPEC.md`.
+`ghl` treats agent use as a product requirement, not a side effect.
 
-## Validation
+```bash
+ghl commands schema --pretty
+ghl endpoints coverage --pretty
+ghl errors list --pretty
+```
+
+Agents can discover commands, inspect endpoint coverage, understand which
+commands require network access, and rely on consistent success and error
+envelopes.
+
+Normal success output looks like this:
+
+```json
+{
+  "ok": true,
+  "data": {},
+  "meta": {
+    "schema_version": "ghl-cli.v1"
+  }
+}
+```
+
+Errors keep the same shape:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "validation_error",
+    "message": "...",
+    "exit_code": 2,
+    "details": {},
+    "hint": "..."
+  },
+  "meta": {
+    "schema_version": "ghl-cli.v1"
+  }
+}
+```
+
+## Safety model
+
+`ghl` is designed for boring, inspectable automation.
+
+- Normal command output never prints full credential values.
+- PIT credentials are stored separately from profile config.
+- The local fallback credential file uses owner-only permissions on Unix.
+- `--token-stdin` and `--token-env` are preferred over passing tokens directly.
+- Raw requests are currently `GET` only.
+- `--offline` blocks real network commands unless `--dry-run=local` is set.
+- Response redaction covers authorization headers, cookies, tokens, API keys,
+  secrets, passwords, OTPs, message bodies, and token-like values.
+- Future write commands must pass through dry-run, profile policy, audit, and
+  explicit confirmation gates before real execution.
+
+This matters because an agent should be useful around CRM data without being
+handed a raw token and a loaded crossbow.
+
+## Project status
+
+`ghl` is pre-release and under active development.
+
+Implemented now:
+
+- Rust workspace with `ghl` library crate and `ghl-cli` binary crate.
+- Short alias binary: `ghl`.
+- Config path resolution.
+- Profile persistence.
+- Local PIT credential storage.
+- Read-only PIT validation.
+- Guarded raw GET.
+- Typed `locations get`.
+- Endpoint manifest seed.
+- Command metadata.
+- Stable error registry.
+- Shell completions and manual output.
+- CI for fmt, clippy, tests, and build.
+
+Current focus:
+
+- location list and search
+- contacts read commands
+- context resolution for company and location defaults
+- rate limiting, retries, and read-only cache
+- OS keyring credential backend
+- Signet secret references
+- smoke runner for safe real-account validation
+
+Future feature planning lives in [`docs/ROADMAP.md`](docs/ROADMAP.md) and the
+full product contract lives in [`docs/SPEC.md`](docs/SPEC.md).
+
+## Documentation
+
+- [`docs/SPEC.md`](docs/SPEC.md), full product spec and implementation plan
+- [`docs/COMMANDS.md`](docs/COMMANDS.md), implemented command surface
+- [`docs/CONFIG.md`](docs/CONFIG.md), config and credential behavior
+- [`docs/NETWORK.md`](docs/NETWORK.md), request surfaces, headers, and network rules
+- [`docs/SMOKE.md`](docs/SMOKE.md), safe local and real-account validation
+- [`docs/ENDPOINTS.md`](docs/ENDPOINTS.md), endpoint manifest shape
+- [`docs/API-COVERAGE.md`](docs/API-COVERAGE.md), coverage status
+- [`docs/FEATURE-PARITY.md`](docs/FEATURE-PARITY.md), reference parity plan
+- [`docs/ERRORS.md`](docs/ERRORS.md), stable error-code registry
+- [`docs/SECURITY.md`](docs/SECURITY.md), security commitments
+- [`docs/INSTALL.md`](docs/INSTALL.md), install notes
+
+## Development
+
+Run the standard validation suite:
 
 ```bash
 cargo fmt --all --check
@@ -58,3 +316,13 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo build --workspace
 ```
+
+Run a network-free smoke preview:
+
+```bash
+./target/debug/ghl locations get loc_test --dry-run=local
+```
+
+## License
+
+No license has been selected yet.
