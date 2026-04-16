@@ -8,6 +8,9 @@ The first implemented endpoint records are:
 - `locations.search`, used by read-only location list/search.
 - `contacts.search`, used by read-only contact search.
 - `contacts.get`, used by read-only contact get.
+- `conversations.search`, used by read-only conversation search.
+- `conversations.get`, used by read-only conversation get.
+- `conversations.messages`, used by read-only message listing with body redaction.
 
 Manifest fields:
 

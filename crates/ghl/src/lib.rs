@@ -8,6 +8,7 @@ pub mod client;
 pub mod config;
 pub mod contacts;
 pub mod context;
+pub mod conversations;
 pub mod credentials;
 pub mod endpoints;
 pub mod errors;
@@ -34,6 +35,13 @@ pub use contacts::{
 pub use context::{
     ContextSource, ResolvedContext, ResolvedContextValue, resolve_context,
     resolve_context_for_dry_run, resolve_context_for_profile,
+};
+pub use conversations::{
+    ConversationGetDryRun, ConversationGetResult, ConversationMessagesDryRun,
+    ConversationMessagesOptions, ConversationMessagesResult, ConversationSearchDryRun,
+    ConversationSearchOptions, ConversationSearchResult, ConversationStatus,
+    conversation_messages_dry_run, conversations_search_dry_run, get_conversation,
+    get_conversation_dry_run, get_conversation_messages, search_conversations,
 };
 pub use credentials::{
     CredentialStore, RedactedCredential, credential_ref, load_credentials, save_credentials,

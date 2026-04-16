@@ -238,6 +238,30 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             "2",
             &["contacts.get"],
         ),
+        remote_pit(
+            "conversations.search",
+            "conversations search [--contact <contact-id>] [--query <query>] [--status <status>] [--limit <n>]",
+            "Search conversations in the resolved location.",
+            "ConversationSearchResult",
+            "2",
+            &["conversations.search"],
+        ),
+        remote_pit(
+            "conversations.get",
+            "conversations get <conversation-id>",
+            "Fetch one conversation by id within the resolved location context.",
+            "ConversationGetResult",
+            "2",
+            &["conversations.get"],
+        ),
+        remote_pit(
+            "conversations.messages",
+            "conversations messages <conversation-id> [--limit <n>]",
+            "List messages for one conversation with redacted message bodies.",
+            "ConversationMessagesResult",
+            "2",
+            &["conversations.messages"],
+        ),
         local(
             "completions.bash",
             "completions bash",
@@ -358,6 +382,9 @@ mod tests {
         assert!(keys.contains(&"locations.search"));
         assert!(keys.contains(&"contacts.search"));
         assert!(keys.contains(&"contacts.get"));
+        assert!(keys.contains(&"conversations.search"));
+        assert!(keys.contains(&"conversations.get"));
+        assert!(keys.contains(&"conversations.messages"));
         assert!(keys.contains(&"errors.list"));
         assert!(keys.contains(&"endpoints.coverage"));
         assert!(keys.contains(&"completions.bash"));
@@ -369,8 +396,16 @@ mod tests {
         for command in command_schema().commands {
             assert!(command.implemented, "{}", command.command_key);
             match command.command_key.as_str() {
-                "auth.pit.validate" | "raw.request" | "locations.get" | "locations.list"
-                | "locations.search" | "contacts.search" | "contacts.get" => {
+                "auth.pit.validate"
+                | "raw.request"
+                | "locations.get"
+                | "locations.list"
+                | "locations.search"
+                | "contacts.search"
+                | "contacts.get"
+                | "conversations.search"
+                | "conversations.get"
+                | "conversations.messages" => {
                     assert!(!command.offline, "{}", command.command_key);
                     assert_eq!(command.auth_classes, vec!["pit".to_owned()]);
                 }

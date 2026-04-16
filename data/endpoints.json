@@ -7,6 +7,7 @@
     "references/ghl-internal-api-bible/01-auth/README.md",
     "references/ghl-internal-api-bible/01-auth/firebase-auth.md",
     "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+    "references/ghl-internal-api-bible/reporting/README.md",
     "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts"
   ],
   "status": "scaffold",
@@ -77,6 +78,58 @@
       "phase": "2",
       "command_keys": ["contacts.get"],
       "response_schema": "ContactGetResult"
+    },
+    {
+      "endpoint_key": "conversations.search",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/conversations/search?locationId={location_id}&status={status}&limit={limit}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/ghl-internal-api-bible/reporting/README.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/conversation-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["conversations.search"],
+      "response_schema": "ConversationSearchResult"
+    },
+    {
+      "endpoint_key": "conversations.get",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/conversations/{conversation_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/conversation-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["conversations.get"],
+      "response_schema": "ConversationGetResult"
+    },
+    {
+      "endpoint_key": "conversations.messages",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/conversations/{conversation_id}/messages?limit={limit}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/ghl-internal-api-bible/reporting/README.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/conversation-tools.ts"
+      ],
+      "risk": "medium",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["conversations.messages"],
+      "response_schema": "ConversationMessagesResult"
     }
   ]
 }

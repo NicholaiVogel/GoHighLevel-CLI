@@ -1,10 +1,12 @@
 use serde_json::Value;
 
-const SECRET_KEYS: &[&str] = &[
+const EXACT_SECRET_KEYS: &[&str] = &[
     "authorization",
     "cookie",
     "token",
+    "accesstoken",
     "access_token",
+    "refreshtoken",
     "refresh_token",
     "refreshjwt",
     "jwt",
@@ -15,6 +17,9 @@ const SECRET_KEYS: &[&str] = &[
     "otp",
     "body",
     "message",
+    "messagebody",
+    "lastmessagebody",
+    "html",
 ];
 
 pub fn redact_header_value(name: &str, value: &str) -> String {
@@ -55,9 +60,15 @@ pub fn redact_json(value: &Value) -> Value {
 
 fn is_secret_key(key: &str) -> bool {
     let lower = key.to_ascii_lowercase();
-    SECRET_KEYS
+    EXACT_SECRET_KEYS
         .iter()
-        .any(|secret_key| lower == *secret_key || lower.contains(secret_key))
+        .any(|secret_key| lower == *secret_key)
+        || lower.contains("token")
+        || lower.contains("secret")
+        || lower.contains("password")
+        || lower.contains("apikey")
+        || lower.contains("api_key")
+        || lower.contains("jwt")
 }
 
 fn looks_like_secret(value: &str) -> bool {
@@ -94,5 +105,23 @@ mod tests {
         assert_eq!(redacted["token"], "[REDACTED]");
         assert_eq!(redacted["nested"]["refreshJwt"], "[REDACTED]");
         assert_eq!(redacted["safe"], "hello");
+    }
+
+    #[test]
+    fn message_collections_are_preserved_while_bodies_are_redacted() {
+        let value = json!({
+            "messages": [
+                {
+                    "messageType": "TYPE_SMS",
+                    "body": "private customer text"
+                }
+            ],
+            "lastMessageBody": "private preview"
+        });
+        let redacted = redact_json(&value);
+
+        assert_eq!(redacted["messages"][0]["messageType"], "TYPE_SMS");
+        assert_eq!(redacted["messages"][0]["body"], "[REDACTED]");
+        assert_eq!(redacted["lastMessageBody"], "[REDACTED]");
     }
 }

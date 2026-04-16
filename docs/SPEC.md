@@ -39,7 +39,7 @@ agents a working CRM spine before we bolt on every last GHL subsystem.
 
 ## Implementation Status Snapshot
 
-Last updated: 2026-04-16 during the contacts read slice.
+Last updated: 2026-04-16 during the conversations read slice.
 
 Implemented so far:
 
@@ -53,8 +53,9 @@ Implemented so far:
 - Local PIT commands: `auth pit add`, `auth pit list-local`, `auth pit remove-local`, `auth pit validate`, and `auth status`.
 - Profile commands: list, show, set default, set default company, set default location, and policy show/set/reset.
 - HTTP client spine for `services` and `backend` surfaces with PIT auth headers, redacted response handling, explicit `raw request` GET, and read-only PIT validation through `GET /locations/{location_id}`.
-- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, and `contacts get <contact-id>`.
-- Contact read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
+- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, `conversations search`, `conversations get`, and `conversations messages`.
+- Contact and conversation read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
+- Conversation message bodies and preview bodies are redacted from normal response output.
 
 Remaining initial implementation priorities:
 
@@ -66,8 +67,8 @@ Remaining initial implementation priorities:
 - Per-location rate limiting, retries, and read-only caching.
 - Agent-safe write policy with dry-run, confirmation flags, and destructive
   guards.
-- Remaining initial command groups: conversations, opportunities, pipelines,
-  calendars, workflows read, smoke run, and broader contact subcommands.
+- Remaining initial command groups: opportunities, pipelines, calendars,
+  workflows read, smoke run, broader contact subcommands, and guarded messaging.
 
 ## 1. Product Summary
 
@@ -472,9 +473,9 @@ ghl contacts notes create <contact-id> [...fields]
 ghl contacts timeline <contact-id>
 ghl contacts export --out <path>
 
-ghl conversations search [--contact <id>] [--limit <n>]
+ghl conversations search [--contact <id>] [--query <query>] [--status all|read|unread|starred|recents] [--limit <n>]
 ghl conversations get <conversation-id>
-ghl conversations messages <conversation-id> [--limit <n>]
+ghl conversations messages <conversation-id> [--limit <n>] [--last-message-id <id>] [--message-type <type>]
 ghl messages send-sms --contact <id>|--conversation <id> --body <text> [--dry-run] [--yes]
 ghl messages send-email --contact <id>|--conversation <id> --subject <text> --body <text> [--dry-run] [--yes]
 
@@ -2476,9 +2477,9 @@ Requirements:
 ### 49.1 Commands
 
 ```bash
-ghl conversations search [--contact <id>] [--limit <n>]
+ghl conversations search [--contact <id>] [--query <query>] [--status all|read|unread|starred|recents] [--limit <n>]
 ghl conversations get <conversation-id>
-ghl conversations messages <conversation-id> [--limit <n>] [--after <datetime>]
+ghl conversations messages <conversation-id> [--limit <n>] [--last-message-id <id>] [--message-type <type>]
 ghl messages send-sms --contact <id>|--conversation <id> --body <text>|--from-file <path> [--dry-run] [--yes]
 ghl messages send-email --contact <id>|--conversation <id> --subject <text> --body <text>|--from-file <path> [--dry-run] [--yes]
 ghl messages cancel <message-id> [--dry-run] --yes
@@ -2491,6 +2492,8 @@ Requirements:
 - Dry-run output reports `body_redacted: true` and byte length.
 - Email commands must preserve subject in dry-run output unless `--redact-subject`
   is passed.
+- Conversation reads require resolved location context.
+- Conversation message bodies and preview bodies are redacted from normal output.
 - Conversation reads should support pagination.
 
 ## 50. Opportunities and Pipelines Feature Spec
@@ -3322,7 +3325,8 @@ references.
 - Implement locations.
 - Implement contact search/get.
 - Implement broader contact writes, tags, tasks, notes, timeline, and export.
-- Implement conversations and read-only messages.
+- Implement conversation search/get/messages.
+- Implement broader conversation message reads, recordings, transcriptions, and attachment operations.
 - Implement messaging dry-run, then guarded real send.
 - Implement opportunities.
 - Implement pipelines.

@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, plus read-only location and contact commands.
+Status: Phase 1 auth/profile and HTTP spine, plus read-only location, contact, and conversation commands.
 
 Machine-readable command metadata is available with:
 
@@ -38,7 +38,10 @@ Implemented commands:
 - `ghl locations search <email> [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
 - `ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>] [--start-after-id <id>] [--start-after <cursor>]`
 - `ghl contacts get <contact-id>`
+- `ghl conversations search [--contact <contact-id>] [--query <query>] [--status all|read|unread|starred|recents] [--limit <n>] [--assigned-to <user-id>] [--last-message-type <type>] [--start-after-date <epoch-ms>]`
+- `ghl conversations get <conversation-id>`
+- `ghl conversations messages <conversation-id> [--limit <n>] [--last-message-id <id>] [--message-type <type>]`
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, and read-only contact search/get only. Use `--dry-run=local` to preview network commands without credentials or network access. Contact commands require resolved location context from `--location` or the active profile. PIT tokens are stored locally and redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact search/get, and conversation search/get/messages only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens and message bodies are redacted from normal output.

@@ -99,6 +99,9 @@ pub enum Command {
     #[command(subcommand)]
     Contacts(ContactsCommand),
 
+    #[command(subcommand)]
+    Conversations(ConversationsCommand),
+
     Completions(CompletionsArgs),
 
     Man,
@@ -348,6 +351,77 @@ pub struct ContactSearchArgs {
 #[derive(Debug, Args)]
 pub struct ContactGetArgs {
     pub contact_id: String,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ConversationsCommand {
+    Search(ConversationSearchArgs),
+    Get(ConversationGetArgs),
+    Messages(ConversationMessagesArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct ConversationSearchArgs {
+    #[arg(long)]
+    pub contact: Option<String>,
+
+    #[arg(long)]
+    pub query: Option<String>,
+
+    #[arg(long, value_enum, default_value_t = ConversationStatusArg::All)]
+    pub status: ConversationStatusArg,
+
+    #[arg(long)]
+    pub assigned_to: Option<String>,
+
+    #[arg(long, default_value_t = 20)]
+    pub limit: u32,
+
+    #[arg(long)]
+    pub last_message_type: Option<String>,
+
+    #[arg(long)]
+    pub start_after_date: Option<u64>,
+}
+
+#[derive(Debug, Args)]
+pub struct ConversationGetArgs {
+    pub conversation_id: String,
+}
+
+#[derive(Debug, Args)]
+pub struct ConversationMessagesArgs {
+    pub conversation_id: String,
+
+    #[arg(long, default_value_t = 20)]
+    pub limit: u32,
+
+    #[arg(long)]
+    pub last_message_id: Option<String>,
+
+    #[arg(long)]
+    pub message_type: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+pub enum ConversationStatusArg {
+    All,
+    Read,
+    Unread,
+    Starred,
+    Recents,
+}
+
+impl From<ConversationStatusArg> for ghl::ConversationStatus {
+    fn from(value: ConversationStatusArg) -> Self {
+        match value {
+            ConversationStatusArg::All => Self::All,
+            ConversationStatusArg::Read => Self::Read,
+            ConversationStatusArg::Unread => Self::Unread,
+            ConversationStatusArg::Starred => Self::Starred,
+            ConversationStatusArg::Recents => Self::Recents,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]

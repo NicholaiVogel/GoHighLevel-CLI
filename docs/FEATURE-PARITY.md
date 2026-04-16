@@ -599,6 +599,13 @@ export behavior.
 - `ghl messages transcriptions get|download`
 - `ghl live-chat typing`
 
+Implemented now: `ghl conversations search`, `ghl conversations get`, and
+`ghl conversations messages` with PIT auth, resolved location context, dry-run
+previews, endpoint manifest entries, mock HTTP coverage, and message body
+redaction. Remaining conversation work is recent/message-by-id/email reads,
+guarded sends, attachments, recordings, transcriptions, cancellation, live-chat
+typing, and write policy/audit gates.
+
 ### Parity requirements
 
 - Endpoint manifest entries for every backed operation.

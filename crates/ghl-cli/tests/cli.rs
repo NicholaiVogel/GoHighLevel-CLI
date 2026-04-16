@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_implemented_read_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 4);
-    assert_eq!(value["data"]["command_mapped_count"], 4);
-    assert_eq!(value["data"]["implemented_count"], 4);
+    assert_eq!(value["data"]["endpoint_count"], 7);
+    assert_eq!(value["data"]["command_mapped_count"], 7);
+    assert_eq!(value["data"]["implemented_count"], 7);
 }
 
 #[test]
@@ -535,6 +535,107 @@ fn contacts_search_dry_run_rejects_empty_search() {
 }
 
 #[test]
+fn conversations_search_dry_run_uses_location_override() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "conversations",
+            "search",
+            "--contact",
+            "contact_123",
+            "--query",
+            "Sarah",
+            "--status",
+            "unread",
+            "--limit",
+            "10",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["search_status"], "unread");
+    assert_eq!(value["data"]["location_id"], "loc_123");
+    assert_eq!(
+        value["data"]["path"],
+        "/conversations/search?locationId=loc_123&status=unread&limit=10&contactId=contact_123&query=Sarah"
+    );
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn conversations_get_dry_run_requires_location_context() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "conversations",
+            "get",
+            "conv_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["path"], "/conversations/conv_123");
+    assert_eq!(value["data"]["location_id"], "loc_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn conversations_messages_dry_run_supports_pagination_filters() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "conversations",
+            "messages",
+            "conv_123",
+            "--limit",
+            "10",
+            "--last-message-id",
+            "msg_099",
+            "--message-type",
+            "TYPE_SMS",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(
+        value["data"]["path"],
+        "/conversations/conv_123/messages?limit=10&lastMessageId=msg_099&type=TYPE_SMS"
+    );
+    assert_eq!(value["data"]["location_id"], "loc_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
 fn profiles_set_default_company_persists_context() {
     let temp = tempfile::tempdir().expect("tempdir");
     ghl_cli()
@@ -669,5 +770,20 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "contacts.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "conversations.search")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "conversations.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "conversations.messages")
     );
 }

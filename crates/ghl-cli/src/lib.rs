@@ -6,8 +6,8 @@ use std::io::{self, Read};
 use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
     AuthCommand, AuthPitAddArgs, AuthPitCommand, Cli, Command, CommandsCommand, ConfigCommand,
-    ContactsCommand, EndpointsCommand, ErrorsCommand, LocationsCommand, ProfilePolicyCommand,
-    ProfilePolicySetArgs, ProfilesCommand, RawCommand,
+    ContactsCommand, ConversationsCommand, EndpointsCommand, ErrorsCommand, LocationsCommand,
+    ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -365,6 +365,100 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+        Command::Conversations(ConversationsCommand::Search(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::ConversationSearchOptions {
+                contact_id: args.contact,
+                query: args.query,
+                status: args.status.into(),
+                assigned_to: args.assigned_to,
+                limit: args.limit,
+                last_message_type: args.last_message_type,
+                start_after_date: args.start_after_date,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::conversations_search_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::search_conversations(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Conversations(ConversationsCommand::Get(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::get_conversation_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.conversation_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::get_conversation(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.conversation_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Conversations(ConversationsCommand::Messages(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::ConversationMessagesOptions {
+                limit: args.limit,
+                last_message_id: args.last_message_id,
+                message_type: args.message_type,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::conversation_messages_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.conversation_id,
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::get_conversation_messages(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.conversation_id,
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
         Command::Completions(args) => {
             let mut command = Cli::command();
             let shell: clap_complete::Shell = args.shell.into();
@@ -478,6 +572,7 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
             | Command::Raw(_)
             | Command::Locations(_)
             | Command::Contacts(_)
+            | Command::Conversations(_)
     )
 }
 
@@ -492,6 +587,7 @@ fn command_name(command: &Command) -> String {
         Command::Raw(_) => "raw".to_owned(),
         Command::Locations(_) => "locations".to_owned(),
         Command::Contacts(_) => "contacts".to_owned(),
+        Command::Conversations(_) => "conversations".to_owned(),
         Command::Completions(_) => "completions".to_owned(),
         Command::Man => "man".to_owned(),
     }

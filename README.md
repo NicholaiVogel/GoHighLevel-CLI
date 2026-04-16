@@ -88,6 +88,7 @@ It gives you:
 | Live validation | Validate PIT with `GET /locations/{location_id}` without printing the body |
 | Locations | Get by id, list by company, search with the current upstream email filter |
 | Contacts | Search by query, exact email, or phone; get one contact by id |
+| Conversations | Search by contact/query/status, get one conversation, list messages with bodies redacted |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
 | Metadata | Command schema, endpoint manifest, error registry, shell completions |
@@ -156,6 +157,9 @@ Then fetch the location through the typed command:
 ./target/debug/ghl --profile default contacts search "Sarah" --limit 10 --pretty
 ./target/debug/ghl --profile default contacts search --email sarah@example.com --pretty
 ./target/debug/ghl --profile default contacts get <contact-id> --pretty
+./target/debug/ghl --profile default conversations search --contact <contact-id> --pretty
+./target/debug/ghl --profile default conversations get <conversation-id> --pretty
+./target/debug/ghl --profile default conversations messages <conversation-id> --pretty
 ```
 
 `locations search` currently maps the search value to GHL's upstream email filter.
@@ -168,6 +172,7 @@ access, use local dry-run:
 ```bash
 ./target/debug/ghl locations get <location-id> --dry-run=local
 ./target/debug/ghl --location <location-id> contacts search "Sarah" --dry-run=local
+./target/debug/ghl --location <location-id> conversations search --dry-run=local
 ```
 
 ## Current command surface
@@ -201,6 +206,10 @@ ghl locations search <email> [--company <company-id>]
 
 ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>]
 ghl contacts get <contact-id>
+
+ghl conversations search [--contact <contact-id>] [--query <query>] [--status all|read|unread|starred|recents] [--limit <n>]
+ghl conversations get <conversation-id>
+ghl conversations messages <conversation-id> [--limit <n>] [--last-message-id <id>] [--message-type <type>]
 
 ghl raw request --surface services --method get --path /locations/<location-id>
 ghl raw request --surface backend --method get --path <path>
@@ -292,6 +301,7 @@ Implemented now:
 - Guarded raw GET.
 - Typed `locations get`, `locations list`, and `locations search`.
 - Typed `contacts search` and `contacts get`.
+- Typed `conversations search`, `conversations get`, and `conversations messages`.
 - Endpoint manifest seed.
 - Command metadata.
 - Stable error registry.
@@ -300,7 +310,7 @@ Implemented now:
 
 Current focus:
 
-- conversations and opportunities read commands
+- opportunities and pipelines read commands
 - stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend
