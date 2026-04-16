@@ -536,6 +536,12 @@ The main spec now covers every family, but some are broad future specs. To reach
 - `ghl contacts campaigns add|remove|remove-all`
 - `ghl contacts workflows add|remove`
 
+Implemented now: `ghl contacts search` and `ghl contacts get` with PIT auth,
+resolved location context, dry-run previews, endpoint manifest entries, and mock
+HTTP coverage. Remaining contact work is write safety, tags, tasks, notes,
+business associations, followers, campaigns, workflows, duplicate handling, and
+export behavior.
+
 ### Parity requirements
 
 - Endpoint manifest entries for every backed operation.
@@ -2054,7 +2060,7 @@ Feature parity is complete when:
 
 ## Immediate Next Steps
 
-1. Expand `data/endpoints.json` beyond the seeded `locations.get` and `locations.search` records.
+1. Expand `data/endpoints.json` beyond the seeded location and contact read records.
 2. Add source-ref parsing for `ghl-internal-api-bible/*/endpoints.md`.
 3. Generate richer `docs/API-COVERAGE.md` tables from `data/reference-tools.json` and `data/endpoints.json`.
 4. Add planned command stubs to command metadata for all modules, even before implementation.

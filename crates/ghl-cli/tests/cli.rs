@@ -97,7 +97,7 @@ fn errors_show_unknown_returns_json_error() {
 }
 
 #[test]
-fn endpoint_coverage_reports_first_implemented_slice() {
+fn endpoint_coverage_reports_implemented_read_slice() {
     let output = ghl_cli()
         .args(["endpoints", "coverage"])
         .assert()
@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_first_implemented_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 2);
-    assert_eq!(value["data"]["command_mapped_count"], 2);
-    assert_eq!(value["data"]["implemented_count"], 2);
+    assert_eq!(value["data"]["endpoint_count"], 4);
+    assert_eq!(value["data"]["command_mapped_count"], 4);
+    assert_eq!(value["data"]["implemented_count"], 4);
 }
 
 #[test]
@@ -444,6 +444,97 @@ fn locations_search_dry_run_maps_query_to_email_filter() {
 }
 
 #[test]
+fn contacts_search_dry_run_uses_location_override_and_exact_filter() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "contacts",
+            "search",
+            "John",
+            "--email",
+            "john@example.com",
+            "--limit",
+            "10",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "POST");
+    assert_eq!(value["data"]["path"], "/contacts/search");
+    assert_eq!(
+        value["data"]["context"]["location_id"]["source"],
+        "override"
+    );
+    assert_eq!(value["data"]["request_body_json"]["locationId"], "loc_123");
+    assert_eq!(value["data"]["request_body_json"]["query"], "John");
+    assert_eq!(
+        value["data"]["request_body_json"]["filters"]["email"],
+        "john@example.com"
+    );
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn contacts_get_dry_run_requires_only_location_context() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "contacts",
+            "get",
+            "contact_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["path"], "/contacts/contact_123");
+    assert_eq!(value["data"]["location_id"], "loc_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn contacts_search_dry_run_rejects_empty_search() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "contacts",
+            "search",
+        ])
+        .assert()
+        .failure()
+        .code(2)
+        .get_output()
+        .stderr
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["error"]["code"], "validation_error");
+}
+
+#[test]
 fn profiles_set_default_company_persists_context() {
     let temp = tempfile::tempdir().expect("tempdir");
     ghl_cli()
@@ -568,5 +659,15 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "locations.search")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "contacts.search")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "contacts.get")
     );
 }

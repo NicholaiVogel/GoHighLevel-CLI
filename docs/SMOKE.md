@@ -15,6 +15,9 @@ ghl --config-dir /tmp/ghl-cli-smoke raw request --surface services --method get 
 ghl --config-dir /tmp/ghl-cli-smoke locations get loc_test --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke locations list --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke locations search test@example.com --dry-run=local
+ghl --config-dir /tmp/ghl-cli-smoke contacts search "Test" --dry-run=local
+ghl --config-dir /tmp/ghl-cli-smoke contacts search --email test@example.com --dry-run=local
+ghl --config-dir /tmp/ghl-cli-smoke contacts get contact_test --dry-run=local
 ```
 
-Real-account smoke should start with `ghl auth pit validate` against a dedicated test location. It performs `GET /locations/{location_id}` and does not print the response body. After that passes, use `ghl locations get <location-id>`, `ghl locations list`, and `ghl locations search <email>` as the first typed read-only CRM smokes.
+Real-account smoke should start with `ghl auth pit validate` against a dedicated test location. It performs `GET /locations/{location_id}` and does not print the response body. After that passes, use `ghl locations get <location-id>`, `ghl locations list`, `ghl locations search <email>`, `ghl contacts search --email <known-test-email>`, and `ghl contacts get <known-test-contact-id>` as the first typed read-only CRM smokes.

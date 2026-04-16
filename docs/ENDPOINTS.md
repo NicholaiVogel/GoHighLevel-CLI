@@ -2,7 +2,12 @@
 
 The bundled manifest lives at `data/endpoints.json`.
 
-The first implemented endpoint records are `locations.get` and `locations.search`, used by PIT validation and read-only location commands.
+The first implemented endpoint records are:
+
+- `locations.get`, used by PIT validation and read-only location get.
+- `locations.search`, used by read-only location list/search.
+- `contacts.search`, used by read-only contact search.
+- `contacts.get`, used by read-only contact get.
 
 Manifest fields:
 

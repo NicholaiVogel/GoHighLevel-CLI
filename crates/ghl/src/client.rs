@@ -45,6 +45,15 @@ pub struct RawGetRequest {
     pub include_body: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RawPostJsonRequest {
+    pub surface: Surface,
+    pub path: String,
+    pub auth_class: AuthClass,
+    pub body: Value,
+    pub include_body: bool,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthClass {
@@ -66,6 +75,22 @@ impl std::str::FromStr for AuthClass {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RawGetResponse {
+    pub method: String,
+    pub surface: String,
+    pub url: String,
+    pub auth_class: String,
+    pub status: u16,
+    pub success: bool,
+    pub headers: BTreeMap<String, String>,
+    pub body_included: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body_json: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body_text: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RawPostJsonResponse {
     pub method: String,
     pub surface: String,
     pub url: String,
@@ -102,6 +127,19 @@ pub fn raw_get(
     let token = pit_token_for_profile(paths, profile)?;
     let config = HttpClientConfig::default();
     execute_get(profile, &token, request, &config)
+}
+
+pub fn post_json(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    request: RawPostJsonRequest,
+) -> Result<RawPostJsonResponse> {
+    let profiles = load_profiles(paths)?;
+    let selected = profiles.selected_name(profile_name).to_owned();
+    let profile = profiles.get_required(&selected)?;
+    let token = pit_token_for_profile(paths, profile)?;
+    let config = HttpClientConfig::default();
+    execute_post_json(profile, &token, request, &config)
 }
 
 pub fn validate_pit(
@@ -183,17 +221,7 @@ fn execute_get(
         })?;
     let status = response.status();
     let headers = redact_headers(response.headers());
-    let text = response.text().map_err(|source| GhlError::Network {
-        message: source.to_string(),
-    })?;
-    let (body_json, body_text) = if request.include_body {
-        match serde_json::from_str::<Value>(&text) {
-            Ok(value) => (Some(redact_json(&value)), None),
-            Err(_) => (None, Some(crate::redaction::redact_token_like(&text))),
-        }
-    } else {
-        (None, None)
-    };
+    let (body_json, body_text) = parse_body(response, request.include_body)?;
 
     Ok(RawGetResponse {
         method: "GET".to_owned(),
@@ -206,6 +234,63 @@ fn execute_get(
         body_included: request.include_body,
         body_json,
         body_text,
+    })
+}
+
+fn execute_post_json(
+    profile: &Profile,
+    token: &str,
+    request: RawPostJsonRequest,
+    config: &HttpClientConfig,
+) -> Result<RawPostJsonResponse> {
+    let url = build_url(request.surface.base_url(profile), &request.path)?;
+    let headers = pit_headers(token, config)?;
+    let client = Client::builder()
+        .timeout(Duration::from_secs(config.timeout_seconds))
+        .build()
+        .map_err(|source| GhlError::Network {
+            message: source.to_string(),
+        })?;
+    let response = client
+        .post(url.clone())
+        .headers(headers)
+        .json(&request.body)
+        .send()
+        .map_err(|source| GhlError::Network {
+            message: source.to_string(),
+        })?;
+    let status = response.status();
+    let headers = redact_headers(response.headers());
+    let (body_json, body_text) = parse_body(response, request.include_body)?;
+
+    Ok(RawPostJsonResponse {
+        method: "POST".to_owned(),
+        surface: request.surface.as_str().to_owned(),
+        url: redacted_url(&url),
+        auth_class: "pit".to_owned(),
+        status: status.as_u16(),
+        success: status.is_success(),
+        headers,
+        body_included: request.include_body,
+        body_json,
+        body_text,
+    })
+}
+
+fn parse_body(
+    response: reqwest::blocking::Response,
+    include_body: bool,
+) -> Result<(Option<Value>, Option<String>)> {
+    let text = response.text().map_err(|source| GhlError::Network {
+        message: source.to_string(),
+    })?;
+    if !include_body {
+        return Ok((None, None));
+    }
+
+    Ok(match serde_json::from_str::<Value>(&text) {
+        Ok(value) => (Some(redact_json(&value)), None),
+        Err(_) => (None, Some(crate::redaction::redact_token_like(&text))),
     })
 }
 

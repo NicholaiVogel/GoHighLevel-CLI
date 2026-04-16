@@ -6,6 +6,7 @@
 pub mod auth;
 pub mod client;
 pub mod config;
+pub mod contacts;
 pub mod context;
 pub mod credentials;
 pub mod endpoints;
@@ -21,9 +22,15 @@ pub use auth::{
     remove_local_pit,
 };
 pub use client::{
-    AuthClass, PitValidationResult, RawGetRequest, RawGetResponse, raw_get, validate_pit,
+    AuthClass, PitValidationResult, RawGetRequest, RawGetResponse, RawPostJsonRequest,
+    RawPostJsonResponse, post_json, raw_get, validate_pit,
 };
 pub use config::{CliConfig, ConfigDoctor, ConfigPaths, resolve_paths, resolve_paths_from_env};
+pub use contacts::{
+    ContactGetDryRun, ContactGetResult, ContactSearchDryRun, ContactSearchOptions,
+    ContactSearchResult, contacts_search_dry_run, get_contact, get_contact_dry_run,
+    search_contacts,
+};
 pub use context::{
     ContextSource, ResolvedContext, ResolvedContextValue, resolve_context,
     resolve_context_for_dry_run, resolve_context_for_profile,

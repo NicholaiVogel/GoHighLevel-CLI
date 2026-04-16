@@ -6,8 +6,8 @@ use std::io::{self, Read};
 use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
     AuthCommand, AuthPitAddArgs, AuthPitCommand, Cli, Command, CommandsCommand, ConfigCommand,
-    EndpointsCommand, ErrorsCommand, LocationsCommand, ProfilePolicyCommand, ProfilePolicySetArgs,
-    ProfilesCommand, RawCommand,
+    ContactsCommand, EndpointsCommand, ErrorsCommand, LocationsCommand, ProfilePolicyCommand,
+    ProfilePolicySetArgs, ProfilesCommand, RawCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -305,6 +305,66 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+        Command::Contacts(ContactsCommand::Search(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::ContactSearchOptions {
+                query: args.query,
+                email: args.email,
+                phone: args.phone,
+                limit: args.limit,
+                start_after_id: args.start_after_id,
+                start_after: args.start_after,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::contacts_search_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::search_contacts(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Contacts(ContactsCommand::Get(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::get_contact_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.contact_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::get_contact(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.contact_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
         Command::Completions(args) => {
             let mut command = Cli::command();
             let shell: clap_complete::Shell = args.shell.into();
@@ -417,6 +477,7 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
         Command::Auth(AuthCommand::Pit(AuthPitCommand::Validate))
             | Command::Raw(_)
             | Command::Locations(_)
+            | Command::Contacts(_)
     )
 }
 
@@ -430,6 +491,7 @@ fn command_name(command: &Command) -> String {
         Command::Endpoints(_) => "endpoints".to_owned(),
         Command::Raw(_) => "raw".to_owned(),
         Command::Locations(_) => "locations".to_owned(),
+        Command::Contacts(_) => "contacts".to_owned(),
         Command::Completions(_) => "completions".to_owned(),
         Command::Man => "man".to_owned(),
     }

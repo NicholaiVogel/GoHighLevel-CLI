@@ -222,6 +222,22 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             "2",
             &["locations.search"],
         ),
+        remote_pit(
+            "contacts.search",
+            "contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>]",
+            "Search contacts in the resolved location using query and exact email or phone filters.",
+            "ContactSearchResult",
+            "2",
+            &["contacts.search"],
+        ),
+        remote_pit(
+            "contacts.get",
+            "contacts get <contact-id>",
+            "Fetch one contact by id within the resolved location context.",
+            "ContactGetResult",
+            "2",
+            &["contacts.get"],
+        ),
         local(
             "completions.bash",
             "completions bash",
@@ -340,6 +356,8 @@ mod tests {
         assert!(keys.contains(&"locations.get"));
         assert!(keys.contains(&"locations.list"));
         assert!(keys.contains(&"locations.search"));
+        assert!(keys.contains(&"contacts.search"));
+        assert!(keys.contains(&"contacts.get"));
         assert!(keys.contains(&"errors.list"));
         assert!(keys.contains(&"endpoints.coverage"));
         assert!(keys.contains(&"completions.bash"));
@@ -352,7 +370,7 @@ mod tests {
             assert!(command.implemented, "{}", command.command_key);
             match command.command_key.as_str() {
                 "auth.pit.validate" | "raw.request" | "locations.get" | "locations.list"
-                | "locations.search" => {
+                | "locations.search" | "contacts.search" | "contacts.get" => {
                     assert!(!command.offline, "{}", command.command_key);
                     assert_eq!(command.auth_classes, vec!["pit".to_owned()]);
                 }

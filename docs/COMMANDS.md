@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, plus read-only location commands.
+Status: Phase 1 auth/profile and HTTP spine, plus read-only location and contact commands.
 
 Machine-readable command metadata is available with:
 
@@ -36,7 +36,9 @@ Implemented commands:
 - `ghl locations get <location-id>`
 - `ghl locations list [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
 - `ghl locations search <email> [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
+- `ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>] [--start-after-id <id>] [--start-after <cursor>]`
+- `ghl contacts get <contact-id>`
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Network support is deliberately narrow: PIT validation, raw GET, and read-only location get/list/search only. Use `--dry-run=local` to preview network commands without credentials or network access. PIT tokens are stored locally and redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, and read-only contact search/get only. Use `--dry-run=local` to preview network commands without credentials or network access. Contact commands require resolved location context from `--location` or the active profile. PIT tokens are stored locally and redacted from normal output.

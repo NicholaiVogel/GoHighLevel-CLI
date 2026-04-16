@@ -88,12 +88,12 @@ mod tests {
     }
 
     #[test]
-    fn bundled_manifest_counts_implemented_validation_endpoint() {
+    fn bundled_manifest_counts_implemented_read_endpoints() {
         let manifest = bundled_manifest().expect("manifest");
         let coverage = endpoint_coverage(&manifest);
 
-        assert_eq!(coverage.endpoint_count, 2);
-        assert_eq!(coverage.command_mapped_count, 2);
-        assert_eq!(coverage.implemented_count, 2);
+        assert_eq!(coverage.endpoint_count, 4);
+        assert_eq!(coverage.command_mapped_count, 4);
+        assert_eq!(coverage.implemented_count, 4);
     }
 }

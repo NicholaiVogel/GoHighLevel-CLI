@@ -87,14 +87,15 @@ It gives you:
 | PIT auth | Store local Private Integration Token references, list redacted previews, remove local refs |
 | Live validation | Validate PIT with `GET /locations/{location_id}` without printing the body |
 | Locations | Get by id, list by company, search with the current upstream email filter |
+| Contacts | Search by query, exact email, or phone; get one contact by id |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
 | Metadata | Command schema, endpoint manifest, error registry, shell completions |
 | Docs | Product spec, command reference, network notes, smoke guide, coverage plan |
 
 The current implementation is intentionally small. It can connect to a test
-location and prove the auth path works, but broad CRM reads and all writes are
-still being built.
+location, prove the auth path works, and perform the first read-only CRM slices.
+All writes are still being built.
 
 ## Quick start
 
@@ -152,15 +153,21 @@ Then fetch the location through the typed command:
 ./target/debug/ghl --profile default locations get <location-id> --pretty
 ./target/debug/ghl --profile default locations list --pretty
 ./target/debug/ghl --profile default locations search user@example.com --pretty
+./target/debug/ghl --profile default contacts search "Sarah" --limit 10 --pretty
+./target/debug/ghl --profile default contacts search --email sarah@example.com --pretty
+./target/debug/ghl --profile default contacts get <contact-id> --pretty
 ```
 
 `locations search` currently maps the search value to GHL's upstream email filter.
+`contacts search --email` uses the exact email filter from the contact search
+payload; the positional query stays fuzzy.
 
 If you only want to preview the request shape without credentials or network
 access, use local dry-run:
 
 ```bash
 ./target/debug/ghl locations get <location-id> --dry-run=local
+./target/debug/ghl --location <location-id> contacts search "Sarah" --dry-run=local
 ```
 
 ## Current command surface
@@ -191,6 +198,9 @@ ghl profiles policy reset <name> --yes
 ghl locations get <location-id>
 ghl locations list [--company <company-id>]
 ghl locations search <email> [--company <company-id>]
+
+ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>]
+ghl contacts get <contact-id>
 
 ghl raw request --surface services --method get --path /locations/<location-id>
 ghl raw request --surface backend --method get --path <path>
@@ -281,6 +291,7 @@ Implemented now:
 - Read-only PIT validation.
 - Guarded raw GET.
 - Typed `locations get`, `locations list`, and `locations search`.
+- Typed `contacts search` and `contacts get`.
 - Endpoint manifest seed.
 - Command metadata.
 - Stable error registry.
@@ -289,8 +300,8 @@ Implemented now:
 
 Current focus:
 
-- contacts read commands
-- stronger context resolution for CRM commands
+- conversations and opportunities read commands
+- stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend
 - Signet secret references

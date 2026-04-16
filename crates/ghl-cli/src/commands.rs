@@ -8,7 +8,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
     bin_name = "ghl",
     version,
     about = "Unofficial Go High Level CLI for humans, scripts, and AI agents.",
-    long_about = "Unofficial Go High Level CLI for humans, scripts, and AI agents.\n\nThe current implementation provides the local CLI spine, profile persistence, local PIT credential storage, guarded read-only PIT validation, raw GET, and typed location GET."
+    long_about = "Unofficial Go High Level CLI for humans, scripts, and AI agents.\n\nThe current implementation provides the local CLI spine, profile persistence, local PIT credential storage, guarded read-only PIT validation, raw GET, typed location reads, and typed contact reads."
 )]
 pub struct Cli {
     #[arg(long, global = true, env = "GHL_CLI_PROFILE")]
@@ -95,6 +95,9 @@ pub enum Command {
 
     #[command(subcommand)]
     Locations(LocationsCommand),
+
+    #[command(subcommand)]
+    Contacts(ContactsCommand),
 
     Completions(CompletionsArgs),
 
@@ -313,6 +316,38 @@ pub struct LocationSearchArgs {
 
     #[arg(long, value_enum, default_value_t = LocationOrder::Asc)]
     pub order: LocationOrder,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ContactsCommand {
+    Search(ContactSearchArgs),
+    Get(ContactGetArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct ContactSearchArgs {
+    /// Fuzzy contact query. Use --email for exact email filtering.
+    pub query: Option<String>,
+
+    #[arg(long)]
+    pub email: Option<String>,
+
+    #[arg(long)]
+    pub phone: Option<String>,
+
+    #[arg(long, default_value_t = 25)]
+    pub limit: u32,
+
+    #[arg(long)]
+    pub start_after_id: Option<String>,
+
+    #[arg(long)]
+    pub start_after: Option<u64>,
+}
+
+#[derive(Debug, Args)]
+pub struct ContactGetArgs {
+    pub contact_id: String,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]

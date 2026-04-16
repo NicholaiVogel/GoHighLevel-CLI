@@ -39,7 +39,7 @@ agents a working CRM spine before we bolt on every last GHL subsystem.
 
 ## Implementation Status Snapshot
 
-Last updated: 2026-04-15 during initial implementation.
+Last updated: 2026-04-16 during the contacts read slice.
 
 Implemented so far:
 
@@ -53,7 +53,8 @@ Implemented so far:
 - Local PIT commands: `auth pit add`, `auth pit list-local`, `auth pit remove-local`, `auth pit validate`, and `auth status`.
 - Profile commands: list, show, set default, set default company, set default location, and policy show/set/reset.
 - HTTP client spine for `services` and `backend` surfaces with PIT auth headers, redacted response handling, explicit `raw request` GET, and read-only PIT validation through `GET /locations/{location_id}`.
-- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, and `locations search <email>`.
+- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, and `contacts get <contact-id>`.
+- Contact read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
 
 Remaining initial implementation priorities:
 
@@ -65,8 +66,8 @@ Remaining initial implementation priorities:
 - Per-location rate limiting, retries, and read-only caching.
 - Agent-safe write policy with dry-run, confirmation flags, and destructive
   guards.
-- Remaining initial command groups: contacts, conversations, opportunities, pipelines,
-  calendars, workflows read, smoke run.
+- Remaining initial command groups: conversations, opportunities, pipelines,
+  calendars, workflows read, smoke run, and broader contact subcommands.
 
 ## 1. Product Summary
 
@@ -456,7 +457,7 @@ ghl locations list
 ghl locations get <location-id>
 ghl locations search <email>
 
-ghl contacts search <query>
+ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>]
 ghl contacts get <contact-id>
 ghl contacts create [...fields]
 ghl contacts update <contact-id> [...fields]
@@ -2445,7 +2446,7 @@ ghl maintenance prune [--audit-before <datetime>] [--jobs-before <datetime>] [--
 ### 48.2 Commands
 
 ```bash
-ghl contacts search <query> [--limit <n>] [--email <email>] [--phone <phone>]
+ghl contacts search [<query>] [--limit <n>] [--email <email>] [--phone <phone>]
 ghl contacts get <contact-id>
 ghl contacts create [...fields] [--dry-run]
 ghl contacts update <contact-id> [...fields] [--dry-run]
@@ -2464,6 +2465,8 @@ Requirements:
 
 - Search by email must use exact email filtering when provided because fuzzy
   search can return loose matches.
+- Search and get require resolved location context even when the upstream contact
+  get endpoint only takes a contact id.
 - Create and upsert must check for duplicate email when email is present.
 - Delete requires `--yes` and `allow_destructive`.
 - Note bodies may be redacted in dry-run output.
@@ -3317,7 +3320,8 @@ references.
 ### 73.3 Phase 2: CRM core
 
 - Implement locations.
-- Implement contacts.
+- Implement contact search/get.
+- Implement broader contact writes, tags, tasks, notes, timeline, and export.
 - Implement conversations and read-only messages.
 - Implement messaging dry-run, then guarded real send.
 - Implement opportunities.

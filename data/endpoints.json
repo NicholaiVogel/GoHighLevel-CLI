@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
-  "source": "phase2-locations-read",
+  "source": "phase2-crm-read",
   "generated_from": [
     "docs/SPEC.md",
     "docs/FEATURE-PARITY.md",
     "references/ghl-internal-api-bible/01-auth/README.md",
     "references/ghl-internal-api-bible/01-auth/firebase-auth.md",
+    "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
     "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts"
   ],
   "status": "scaffold",
@@ -42,6 +43,40 @@
       "phase": "2",
       "command_keys": ["locations.list", "locations.search"],
       "response_schema": "LocationSearchResult"
+    },
+    {
+      "endpoint_key": "contacts.search",
+      "surface": "services",
+      "method": "POST",
+      "path_template": "/contacts/search",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/contact-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["contacts.search"],
+      "response_schema": "ContactSearchResult"
+    },
+    {
+      "endpoint_key": "contacts.get",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/contacts/{contact_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/contact-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["contacts.get"],
+      "response_schema": "ContactGetResult"
     }
   ]
 }
