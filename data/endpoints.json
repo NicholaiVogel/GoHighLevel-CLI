@@ -25,6 +25,23 @@
       "phase": "2",
       "command_keys": ["auth.pit.validate", "locations.get"],
       "response_schema": "LocationGetResult"
+    },
+    {
+      "endpoint_key": "locations.search",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/locations/search?companyId={company_id}&skip={skip}&limit={limit}&order={order}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/auth/README.md",
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["locations.list", "locations.search"],
+      "response_schema": "LocationSearchResult"
     }
   ]
 }

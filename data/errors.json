@@ -17,6 +17,7 @@
     { "code": "schema_validation_failed", "exit_code": 14, "title": "Schema validation failed" },
     { "code": "confirmation_required", "exit_code": 15, "title": "Confirmation required" },
     { "code": "lock_unavailable", "exit_code": 16, "title": "Local lock unavailable" },
-    { "code": "offline_blocked", "exit_code": 17, "title": "Offline mode blocked command" }
+    { "code": "offline_blocked", "exit_code": 17, "title": "Offline mode blocked command" },
+    { "code": "ambiguous_context", "exit_code": 2, "title": "Ambiguous context" }
   ]
 }

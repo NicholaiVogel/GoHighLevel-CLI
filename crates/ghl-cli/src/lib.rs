@@ -86,8 +86,8 @@ fn execute(cli: Cli) -> Result<()> {
                     &paths,
                     profile,
                     token,
-                    args.location.or(selected_location),
-                    args.company.or(selected_company),
+                    args.location.or(selected_location.clone()),
+                    args.company.or(selected_company.clone()),
                     args.set_default,
                 )?,
                 format,
@@ -136,6 +136,14 @@ fn execute(cli: Cli) -> Result<()> {
             let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
             print_success(
                 ghl::set_default_profile(&paths, &args.name)?,
+                format,
+                pretty,
+            )
+        }
+        Command::Profiles(ProfilesCommand::SetDefaultCompany(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            print_success(
+                ghl::set_default_company(&paths, &args.name, &args.company_id)?,
                 format,
                 pretty,
             )
@@ -226,6 +234,72 @@ fn execute(cli: Cli) -> Result<()> {
                 let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
                 print_success(
                     ghl::get_location(&paths, selected_profile.as_deref(), &args.location_id)?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Locations(LocationsCommand::List(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::LocationSearchOptions {
+                company_id: args.company.or(selected_company.clone()),
+                email: None,
+                skip: args.skip,
+                limit: args.limit,
+                order: args.order.into(),
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::locations_search_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::list_locations(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Locations(LocationsCommand::Search(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::LocationSearchOptions {
+                company_id: args.company.or(selected_company.clone()),
+                email: Some(args.query),
+                skip: args.skip,
+                limit: args.limit,
+                order: args.order.into(),
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::locations_search_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::search_locations(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
                     format,
                     pretty,
                 )

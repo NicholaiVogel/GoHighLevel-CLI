@@ -6,6 +6,7 @@
 pub mod auth;
 pub mod client;
 pub mod config;
+pub mod context;
 pub mod credentials;
 pub mod endpoints;
 pub mod errors;
@@ -23,16 +24,24 @@ pub use client::{
     AuthClass, PitValidationResult, RawGetRequest, RawGetResponse, raw_get, validate_pit,
 };
 pub use config::{CliConfig, ConfigDoctor, ConfigPaths, resolve_paths, resolve_paths_from_env};
+pub use context::{
+    ContextSource, ResolvedContext, ResolvedContextValue, resolve_context,
+    resolve_context_for_dry_run, resolve_context_for_profile,
+};
 pub use credentials::{
     CredentialStore, RedactedCredential, credential_ref, load_credentials, save_credentials,
 };
 pub use endpoints::{EndpointCoverage, EndpointDefinition, EndpointManifest, bundled_manifest};
 pub use errors::{ErrorDefinition, GhlError, Result, error_definitions, find_error_definition};
-pub use locations::{LocationGetDryRun, LocationGetResult, get_location, get_location_dry_run};
+pub use locations::{
+    LocationGetDryRun, LocationGetResult, LocationSearchDryRun, LocationSearchOptions,
+    LocationSearchOrder, LocationSearchResult, get_location, get_location_dry_run, list_locations,
+    locations_search_dry_run, search_locations,
+};
 pub use metadata::{CommandMetadata, CommandSchema, command_schema};
 pub use profiles::{
-    Profile, ProfileDefaultResult, ProfileList, ProfileLocationResult, ProfilePolicy,
-    ProfilePolicyPatch, ProfilesFile, load_profiles, save_profiles, set_default_location,
-    set_default_profile,
+    Profile, ProfileCompanyResult, ProfileDefaultResult, ProfileList, ProfileLocationResult,
+    ProfilePolicy, ProfilePolicyPatch, ProfilesFile, load_profiles, save_profiles,
+    set_default_company, set_default_location, set_default_profile,
 };
 pub use surfaces::Surface;

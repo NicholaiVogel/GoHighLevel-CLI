@@ -83,10 +83,10 @@ It gives you:
 | Area | Current support |
 | --- | --- |
 | Config | Resolve config/data/cache/audit paths, show redacted config, local doctor |
-| Profiles | Create through auth, list, show, set default, set default location |
+| Profiles | Create through auth, list, show, set default, set default company, set default location |
 | PIT auth | Store local Private Integration Token references, list redacted previews, remove local refs |
 | Live validation | Validate PIT with `GET /locations/{location_id}` without printing the body |
-| Locations | Fetch one location by id with redacted output |
+| Locations | Get by id, list by company, search with the current upstream email filter |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
 | Metadata | Command schema, endpoint manifest, error registry, shell completions |
@@ -136,7 +136,8 @@ export GHL_PIT="your-private-integration-token"
 
 ./target/debug/ghl --profile default auth pit add \
   --token-env GHL_PIT \
-  --location <location-id>
+  --location <location-id> \
+  --company <company-id>
 ```
 
 Validate it with the safest live request we have:
@@ -149,7 +150,11 @@ Then fetch the location through the typed command:
 
 ```bash
 ./target/debug/ghl --profile default locations get <location-id> --pretty
+./target/debug/ghl --profile default locations list --pretty
+./target/debug/ghl --profile default locations search user@example.com --pretty
 ```
+
+`locations search` currently maps the search value to GHL's upstream email filter.
 
 If you only want to preview the request shape without credentials or network
 access, use local dry-run:
@@ -168,7 +173,7 @@ ghl config show
 ghl config doctor
 
 ghl auth pit add --token-stdin --location <location-id>
-ghl auth pit add --token-env GHL_PIT --location <location-id>
+ghl auth pit add --token-env GHL_PIT --location <location-id> --company <company-id>
 ghl auth pit validate
 ghl auth pit list-local
 ghl auth pit remove-local <credential-ref>
@@ -177,12 +182,15 @@ ghl auth status
 ghl profiles list
 ghl profiles show <name>
 ghl profiles set-default <name>
+ghl profiles set-default-company <name> <company-id>
 ghl profiles set-default-location <name> <location-id>
 ghl profiles policy show <name>
 ghl profiles policy set <name> [...flags]
 ghl profiles policy reset <name> --yes
 
 ghl locations get <location-id>
+ghl locations list [--company <company-id>]
+ghl locations search <email> [--company <company-id>]
 
 ghl raw request --surface services --method get --path /locations/<location-id>
 ghl raw request --surface backend --method get --path <path>
@@ -272,7 +280,7 @@ Implemented now:
 - Local PIT credential storage.
 - Read-only PIT validation.
 - Guarded raw GET.
-- Typed `locations get`.
+- Typed `locations get`, `locations list`, and `locations search`.
 - Endpoint manifest seed.
 - Command metadata.
 - Stable error registry.
@@ -281,9 +289,8 @@ Implemented now:
 
 Current focus:
 
-- location list and search
 - contacts read commands
-- context resolution for company and location defaults
+- stronger context resolution for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend
 - Signet secret references

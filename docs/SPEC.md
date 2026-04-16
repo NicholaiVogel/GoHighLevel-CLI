@@ -51,9 +51,9 @@ Implemented so far:
 - Profile schema and persistence in `profiles.json`.
 - Local fallback credential store in `credentials.json` with owner-only permissions on Unix.
 - Local PIT commands: `auth pit add`, `auth pit list-local`, `auth pit remove-local`, `auth pit validate`, and `auth status`.
-- Profile commands: list, show, set default, set default location, and policy show/set/reset.
+- Profile commands: list, show, set default, set default company, set default location, and policy show/set/reset.
 - HTTP client spine for `services` and `backend` surfaces with PIT auth headers, redacted response handling, explicit `raw request` GET, and read-only PIT validation through `GET /locations/{location_id}`.
-- First typed read-only CRM command: `locations get <location-id>`.
+- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, and `locations search <email>`.
 
 Remaining initial implementation priorities:
 
@@ -65,8 +65,8 @@ Remaining initial implementation priorities:
 - Per-location rate limiting, retries, and read-only caching.
 - Agent-safe write policy with dry-run, confirmation flags, and destructive
   guards.
-- Remaining initial command groups: location list/search, contacts, conversations,
-  opportunities, pipelines, calendars, workflows read, raw request, smoke run.
+- Remaining initial command groups: contacts, conversations, opportunities, pipelines,
+  calendars, workflows read, smoke run.
 
 ## 1. Product Summary
 
@@ -446,6 +446,7 @@ ghl auth export
 ghl profiles list
 ghl profiles show <name>
 ghl profiles set-default <name>
+ghl profiles set-default-company <name> <company-id>
 ghl profiles policy show <name>
 ghl profiles policy set <name> [...flags]
 ghl profiles policy reset <name> --yes
@@ -453,7 +454,7 @@ ghl profiles set-default-location <name> <location-id>
 
 ghl locations list
 ghl locations get <location-id>
-ghl locations search <query>
+ghl locations search <email>
 
 ghl contacts search <query>
 ghl contacts get <contact-id>

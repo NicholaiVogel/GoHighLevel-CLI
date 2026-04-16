@@ -24,3 +24,6 @@ Errors use this envelope:
   }
 }
 ```
+
+
+`ambiguous_context` uses exit code 2 when a command needs company or location context and the CLI cannot resolve it from flags, environment, or profile defaults.

@@ -159,6 +159,7 @@ pub enum ProfilesCommand {
     List,
     Show(ProfileNameArgs),
     SetDefault(ProfileNameArgs),
+    SetDefaultCompany(ProfileSetDefaultCompanyArgs),
     SetDefaultLocation(ProfileSetDefaultLocationArgs),
     #[command(subcommand)]
     Policy(ProfilePolicyCommand),
@@ -173,6 +174,12 @@ pub struct ProfileNameArgs {
 pub struct ProfileSetDefaultLocationArgs {
     pub name: String,
     pub location_id: String,
+}
+
+#[derive(Debug, Args)]
+pub struct ProfileSetDefaultCompanyArgs {
+    pub name: String,
+    pub company_id: String,
 }
 
 #[derive(Debug, Subcommand)]
@@ -266,11 +273,61 @@ pub struct RawRequestArgs {
 #[derive(Debug, Subcommand)]
 pub enum LocationsCommand {
     Get(LocationGetArgs),
+    List(LocationListArgs),
+    Search(LocationSearchArgs),
 }
 
 #[derive(Debug, Args)]
 pub struct LocationGetArgs {
     pub location_id: String,
+}
+
+#[derive(Debug, Args)]
+pub struct LocationListArgs {
+    #[arg(long)]
+    pub company: Option<String>,
+
+    #[arg(long, default_value_t = 0)]
+    pub skip: u32,
+
+    #[arg(long, default_value_t = 50)]
+    pub limit: u32,
+
+    #[arg(long, value_enum, default_value_t = LocationOrder::Asc)]
+    pub order: LocationOrder,
+}
+
+#[derive(Debug, Args)]
+pub struct LocationSearchArgs {
+    /// Current GHL API support maps this search value to the upstream email filter.
+    pub query: String,
+
+    #[arg(long)]
+    pub company: Option<String>,
+
+    #[arg(long, default_value_t = 0)]
+    pub skip: u32,
+
+    #[arg(long, default_value_t = 50)]
+    pub limit: u32,
+
+    #[arg(long, value_enum, default_value_t = LocationOrder::Asc)]
+    pub order: LocationOrder,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+pub enum LocationOrder {
+    Asc,
+    Desc,
+}
+
+impl From<LocationOrder> for ghl::LocationSearchOrder {
+    fn from(value: LocationOrder) -> Self {
+        match value {
+            LocationOrder::Asc => Self::Asc,
+            LocationOrder::Desc => Self::Desc,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]

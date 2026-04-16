@@ -2054,7 +2054,7 @@ Feature parity is complete when:
 
 ## Immediate Next Steps
 
-1. Expand `data/endpoints.json` beyond the seeded `locations.get` record.
+1. Expand `data/endpoints.json` beyond the seeded `locations.get` and `locations.search` records.
 2. Add source-ref parsing for `ghl-internal-api-bible/*/endpoints.md`.
 3. Generate richer `docs/API-COVERAGE.md` tables from `data/reference-tools.json` and `data/endpoints.json`.
 4. Add planned command stubs to command metadata for all modules, even before implementation.

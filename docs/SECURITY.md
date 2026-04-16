@@ -1,6 +1,6 @@
 # Security
 
-The current implementation stores PIT credentials in the local fallback credential file and supports explicit read-only network calls for PIT validation, raw GET, and typed `locations get`.
+The current implementation stores PIT credentials in the local fallback credential file and supports explicit read-only network calls for PIT validation, raw GET, and typed location get/list/search.
 
 Security commitments for later phases:
 

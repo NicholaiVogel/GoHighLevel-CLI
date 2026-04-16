@@ -6,10 +6,10 @@ Repository spine, local command metadata, stable JSON envelopes, config path dis
 
 ## Phase 1
 
-Profiles, local credential backend, local PIT storage, live PIT validation, HTTP surfaces, redaction helpers, and guarded raw GET are started. Remaining Phase 1 work: session login, refresh rotation, Signet credential references, schema registry, context resolution, rate limiting, retries, and caching.
+Profiles, local credential backend, local PIT storage, live PIT validation, HTTP surfaces, redaction helpers, and guarded raw GET are started. Remaining Phase 1 work: session login, refresh rotation, Signet credential references, schema registry, Signet credential references, schema registry, rate limiting, retries, and caching.
 
 ## Phase 2
 
-CRM core: `locations get` is started. Remaining Phase 2 work: location list/search, contacts, conversations, opportunities, pipelines, calendars, guarded messaging, smoke run, audit journal, idempotency, capabilities, fixtures, and doctor commands.
+CRM core: location get/list/search and profile company context are started. Remaining Phase 2 work: contacts, conversations, opportunities, pipelines, calendars, guarded messaging, smoke run, audit journal, idempotency, capabilities, fixtures, and doctor commands.
 
 Later phases follow `docs/SPEC.md`.

@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_first_implemented_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 1);
-    assert_eq!(value["data"]["command_mapped_count"], 1);
-    assert_eq!(value["data"]["implemented_count"], 1);
+    assert_eq!(value["data"]["endpoint_count"], 2);
+    assert_eq!(value["data"]["command_mapped_count"], 2);
+    assert_eq!(value["data"]["implemented_count"], 2);
 }
 
 #[test]
@@ -387,6 +387,106 @@ fn locations_get_dry_run_does_not_require_credentials_or_network() {
 }
 
 #[test]
+fn locations_list_dry_run_uses_company_override_without_profile() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "locations",
+            "list",
+            "--company",
+            "company_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(
+        value["data"]["path"],
+        "/locations/search?companyId=company_123&skip=0&limit=50&order=asc"
+    );
+    assert_eq!(value["data"]["context"]["company_id"]["source"], "override");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn locations_search_dry_run_maps_query_to_email_filter() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "locations",
+            "search",
+            "test@example.com",
+            "--company",
+            "company_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["email_filter"], "test@example.com");
+    assert_eq!(
+        value["data"]["path"],
+        "/locations/search?companyId=company_123&skip=0&limit=50&order=asc&email=test%40example.com"
+    );
+}
+
+#[test]
+fn profiles_set_default_company_persists_context() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "auth",
+            "pit",
+            "add",
+            "--token-stdin",
+            "--location",
+            "loc_123",
+        ])
+        .write_stdin("pit-secret\n")
+        .assert()
+        .success();
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["profiles", "set-default-company", "default", "company_123"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+    assert_eq!(value["data"]["company_id"], "company_123");
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["profiles", "show", "default"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+    assert_eq!(value["data"]["company_id"], "company_123");
+}
+
+#[test]
 fn offline_blocks_network_commands_without_dry_run() {
     let temp = tempfile::tempdir().expect("tempdir");
     let output = ghl_cli()
@@ -458,5 +558,15 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "locations.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "locations.list")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "locations.search")
     );
 }

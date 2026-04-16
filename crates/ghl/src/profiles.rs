@@ -79,6 +79,12 @@ pub struct ProfileLocationResult {
     pub location_id: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProfileCompanyResult {
+    pub profile: String,
+    pub company_id: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct ProfilePolicyPatch {
     pub agent_mode: Option<bool>,
@@ -268,6 +274,22 @@ pub fn set_default_location(
     Ok(ProfileLocationResult {
         profile: profile_name.to_owned(),
         location_id: location_id.to_owned(),
+    })
+}
+
+pub fn set_default_company(
+    paths: &ConfigPaths,
+    profile_name: &str,
+    company_id: &str,
+) -> Result<ProfileCompanyResult> {
+    let mut profiles = load_profiles(paths)?;
+    let profile = profiles.get_required_mut(profile_name)?;
+    profile.company_id = Some(company_id.to_owned());
+    save_profiles(paths, &profiles)?;
+
+    Ok(ProfileCompanyResult {
+        profile: profile_name.to_owned(),
+        company_id: company_id.to_owned(),
     })
 }
 

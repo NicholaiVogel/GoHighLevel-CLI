@@ -60,6 +60,9 @@ pub enum GhlError {
     #[error("destructive command requires confirmation; pass --yes to continue")]
     ConfirmationRequired,
 
+    #[error("{message}")]
+    AmbiguousContext { context: String, message: String },
+
     #[error("network request failed: {message}")]
     Network { message: String },
 }
@@ -78,6 +81,7 @@ impl GhlError {
             | Self::MissingTokenInput
             | Self::ConflictingTokenInput => "validation_error",
             Self::ConfirmationRequired => "confirmation_required",
+            Self::AmbiguousContext { .. } => "ambiguous_context",
             Self::Network { .. } => "network_error",
         }
     }
@@ -90,6 +94,7 @@ impl GhlError {
             "offline_blocked" => 17,
             "confirmation_required" => 15,
             "network_error" => 5,
+            "ambiguous_context" => 2,
             _ => 1,
         }
     }
@@ -115,6 +120,12 @@ impl GhlError {
             Self::ConflictingTokenInput => Some("Choose exactly one token source."),
             Self::ConfirmationRequired => {
                 Some("Pass `--yes` only after reviewing the local change.")
+            }
+            Self::AmbiguousContext { context, .. } if context == "company" => {
+                Some("Pass `--company <id>` or store a profile company id.")
+            }
+            Self::AmbiguousContext { context, .. } if context == "location" => {
+                Some("Pass `--location <id>` or store a profile location id.")
             }
             _ => None,
         }
@@ -231,6 +242,12 @@ pub const STANDARD_ERRORS: &[ErrorDefinition] = &[
         exit_code: 17,
         title: "Offline mode blocked command",
         description: "Offline mode refused a command that would require network access.",
+    },
+    ErrorDefinition {
+        code: "ambiguous_context",
+        exit_code: 2,
+        title: "Ambiguous context",
+        description: "Company or location context is missing or ambiguous.",
     },
 ];
 

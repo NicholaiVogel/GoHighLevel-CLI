@@ -121,6 +121,13 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             "1",
         ),
         local(
+            "profiles.set_default_company",
+            "profiles set-default-company <name> <company-id>",
+            "Set the default GHL company id for a profile.",
+            "ProfileCompanyResult",
+            "2",
+        ),
+        local(
             "profiles.set_default_location",
             "profiles set-default-location <name> <location-id>",
             "Set the default GHL location id for a profile.",
@@ -198,6 +205,22 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             "LocationGetResult",
             "2",
             &["locations.get"],
+        ),
+        remote_pit(
+            "locations.list",
+            "locations list [--company <company-id>]",
+            "List locations for a company using GHL's /locations/search endpoint.",
+            "LocationSearchResult",
+            "2",
+            &["locations.search"],
+        ),
+        remote_pit(
+            "locations.search",
+            "locations search <query> [--company <company-id>]",
+            "Search locations using GHL's current email filter.",
+            "LocationSearchResult",
+            "2",
+            &["locations.search"],
         ),
         local(
             "completions.bash",
@@ -315,6 +338,8 @@ mod tests {
         assert!(keys.contains(&"auth.pit.validate"));
         assert!(keys.contains(&"raw.request"));
         assert!(keys.contains(&"locations.get"));
+        assert!(keys.contains(&"locations.list"));
+        assert!(keys.contains(&"locations.search"));
         assert!(keys.contains(&"errors.list"));
         assert!(keys.contains(&"endpoints.coverage"));
         assert!(keys.contains(&"completions.bash"));
@@ -326,7 +351,8 @@ mod tests {
         for command in command_schema().commands {
             assert!(command.implemented, "{}", command.command_key);
             match command.command_key.as_str() {
-                "auth.pit.validate" | "raw.request" | "locations.get" => {
+                "auth.pit.validate" | "raw.request" | "locations.get" | "locations.list"
+                | "locations.search" => {
                     assert!(!command.offline, "{}", command.command_key);
                     assert_eq!(command.auth_classes, vec!["pit".to_owned()]);
                 }

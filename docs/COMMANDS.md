@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, plus the first read-only location command.
+Status: Phase 1 auth/profile and HTTP spine, plus read-only location commands.
 
 Machine-readable command metadata is available with:
 
@@ -14,7 +14,7 @@ Implemented commands:
 - `ghl config path`
 - `ghl config show`
 - `ghl config doctor`
-- `ghl auth pit add --token-stdin --location <location-id>`
+- `ghl auth pit add --token-stdin --location <location-id> [--company <company-id>]`
 - `ghl auth pit validate`
 - `ghl auth pit list-local`
 - `ghl auth pit remove-local <credential-ref>`
@@ -22,6 +22,7 @@ Implemented commands:
 - `ghl profiles list`
 - `ghl profiles show <name>`
 - `ghl profiles set-default <name>`
+- `ghl profiles set-default-company <name> <company-id>`
 - `ghl profiles set-default-location <name> <location-id>`
 - `ghl profiles policy show <name>`
 - `ghl profiles policy set <name> [...flags]`
@@ -33,7 +34,9 @@ Implemented commands:
 - `ghl endpoints coverage`
 - `ghl raw request --surface services|backend --method get --path <path> [--include-body]`
 - `ghl locations get <location-id>`
+- `ghl locations list [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
+- `ghl locations search <email> [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Network support is deliberately narrow: PIT validation, raw GET, and `locations get` only. Use `--dry-run=local` to preview network commands without credentials or network access. PIT tokens are stored locally and redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, and read-only location get/list/search only. Use `--dry-run=local` to preview network commands without credentials or network access. PIT tokens are stored locally and redacted from normal output.
