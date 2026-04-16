@@ -325,4 +325,4 @@ Run a network-free smoke preview:
 
 ## License
 
-No license has been selected yet.
+Apache-2.0. See [`LICENSE`](LICENSE).
