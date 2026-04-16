@@ -11,6 +11,9 @@ The first implemented endpoint records are:
 - `conversations.search`, used by read-only conversation search.
 - `conversations.get`, used by read-only conversation get.
 - `conversations.messages`, used by read-only message listing with body redaction.
+- `pipelines.list`, used by read-only pipeline list and client-side pipeline get.
+- `opportunities.search`, used by read-only opportunity search.
+- `opportunities.get`, used by read-only opportunity get.
 
 Manifest fields:
 

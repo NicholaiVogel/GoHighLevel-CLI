@@ -14,6 +14,8 @@ pub mod endpoints;
 pub mod errors;
 pub mod locations;
 pub mod metadata;
+pub mod opportunities;
+pub mod pipelines;
 pub mod profiles;
 pub mod redaction;
 pub mod surfaces;
@@ -54,6 +56,15 @@ pub use locations::{
     locations_search_dry_run, search_locations,
 };
 pub use metadata::{CommandMetadata, CommandSchema, command_schema};
+pub use opportunities::{
+    OpportunityGetDryRun, OpportunityGetResult, OpportunitySearchDryRun, OpportunitySearchOptions,
+    OpportunitySearchResult, OpportunityStatus, get_opportunity, get_opportunity_dry_run,
+    opportunities_search_dry_run, search_opportunities,
+};
+pub use pipelines::{
+    PipelineGetDryRun, PipelineGetResult, PipelineListDryRun, PipelineListResult, get_pipeline,
+    get_pipeline_dry_run, list_pipelines, pipelines_list_dry_run,
+};
 pub use profiles::{
     Profile, ProfileCompanyResult, ProfileDefaultResult, ProfileList, ProfileLocationResult,
     ProfilePolicy, ProfilePolicyPatch, ProfilesFile, load_profiles, save_profiles,

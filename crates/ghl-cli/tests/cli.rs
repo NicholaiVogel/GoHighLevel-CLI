@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_implemented_read_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 7);
-    assert_eq!(value["data"]["command_mapped_count"], 7);
-    assert_eq!(value["data"]["implemented_count"], 7);
+    assert_eq!(value["data"]["endpoint_count"], 10);
+    assert_eq!(value["data"]["command_mapped_count"], 10);
+    assert_eq!(value["data"]["implemented_count"], 10);
 }
 
 #[test]
@@ -636,6 +636,133 @@ fn conversations_messages_dry_run_supports_pagination_filters() {
 }
 
 #[test]
+fn pipelines_list_dry_run_uses_location_context() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "pipelines",
+            "list",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(
+        value["data"]["path"],
+        "/opportunities/pipelines?locationId=loc_123"
+    );
+    assert_eq!(value["data"]["location_id"], "loc_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn pipelines_get_dry_run_filters_list_client_side() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "pipelines",
+            "get",
+            "pipe_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(
+        value["data"]["path"],
+        "/opportunities/pipelines?locationId=loc_123"
+    );
+    assert_eq!(value["data"]["pipeline_id"], "pipe_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn opportunities_search_dry_run_uses_location_and_filters() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "opportunities",
+            "search",
+            "--query",
+            "Roof",
+            "--pipeline",
+            "pipe_123",
+            "--stage",
+            "stage_123",
+            "--contact",
+            "contact_123",
+            "--status",
+            "open",
+            "--limit",
+            "10",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["opportunity_status"], "open");
+    assert_eq!(
+        value["data"]["path"],
+        "/opportunities/search?location_id=loc_123&limit=10&q=Roof&pipeline_id=pipe_123&pipeline_stage_id=stage_123&contact_id=contact_123&status=open"
+    );
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn opportunities_get_dry_run_requires_location_context() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "opportunities",
+            "get",
+            "opp_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["path"], "/opportunities/opp_123");
+    assert_eq!(value["data"]["location_id"], "loc_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
 fn profiles_set_default_company_persists_context() {
     let temp = tempfile::tempdir().expect("tempdir");
     ghl_cli()
@@ -785,5 +912,25 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "conversations.messages")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "pipelines.list")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "pipelines.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "opportunities.search")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "opportunities.get")
     );
 }

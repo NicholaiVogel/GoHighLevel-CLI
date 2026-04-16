@@ -7,7 +7,8 @@ use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
     AuthCommand, AuthPitAddArgs, AuthPitCommand, Cli, Command, CommandsCommand, ConfigCommand,
     ContactsCommand, ConversationsCommand, EndpointsCommand, ErrorsCommand, LocationsCommand,
-    ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand,
+    OpportunitiesCommand, PipelinesCommand, ProfilePolicyCommand, ProfilePolicySetArgs,
+    ProfilesCommand, RawCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -459,6 +460,120 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+        Command::Pipelines(PipelinesCommand::List) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::pipelines_list_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::list_pipelines(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Pipelines(PipelinesCommand::Get(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::get_pipeline_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.pipeline_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::get_pipeline(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.pipeline_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Opportunities(OpportunitiesCommand::Search(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::OpportunitySearchOptions {
+                query: args.query,
+                pipeline_id: args.pipeline,
+                pipeline_stage_id: args.stage,
+                contact_id: args.contact,
+                status: args.status.map(Into::into),
+                assigned_to: args.assigned_to,
+                limit: args.limit,
+                page: args.page,
+                start_after_id: args.start_after_id,
+                start_after: args.start_after,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::opportunities_search_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::search_opportunities(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Opportunities(OpportunitiesCommand::Get(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::get_opportunity_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.opportunity_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::get_opportunity(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.opportunity_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
         Command::Completions(args) => {
             let mut command = Cli::command();
             let shell: clap_complete::Shell = args.shell.into();
@@ -573,6 +688,8 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
             | Command::Locations(_)
             | Command::Contacts(_)
             | Command::Conversations(_)
+            | Command::Pipelines(_)
+            | Command::Opportunities(_)
     )
 }
 
@@ -588,6 +705,8 @@ fn command_name(command: &Command) -> String {
         Command::Locations(_) => "locations".to_owned(),
         Command::Contacts(_) => "contacts".to_owned(),
         Command::Conversations(_) => "conversations".to_owned(),
+        Command::Pipelines(_) => "pipelines".to_owned(),
+        Command::Opportunities(_) => "opportunities".to_owned(),
         Command::Completions(_) => "completions".to_owned(),
         Command::Man => "man".to_owned(),
     }

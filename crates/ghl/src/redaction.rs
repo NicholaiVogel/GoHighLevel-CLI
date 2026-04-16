@@ -20,6 +20,7 @@ const EXACT_SECRET_KEYS: &[&str] = &[
     "messagebody",
     "lastmessagebody",
     "html",
+    "notes",
 ];
 
 pub fn redact_header_value(name: &str, value: &str) -> String {

@@ -102,6 +102,12 @@ pub enum Command {
     #[command(subcommand)]
     Conversations(ConversationsCommand),
 
+    #[command(subcommand)]
+    Pipelines(PipelinesCommand),
+
+    #[command(subcommand)]
+    Opportunities(OpportunitiesCommand),
+
     Completions(CompletionsArgs),
 
     Man,
@@ -420,6 +426,82 @@ impl From<ConversationStatusArg> for ghl::ConversationStatus {
             ConversationStatusArg::Unread => Self::Unread,
             ConversationStatusArg::Starred => Self::Starred,
             ConversationStatusArg::Recents => Self::Recents,
+        }
+    }
+}
+
+#[derive(Debug, Subcommand)]
+pub enum PipelinesCommand {
+    List,
+    Get(PipelineGetArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct PipelineGetArgs {
+    pub pipeline_id: String,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum OpportunitiesCommand {
+    Search(OpportunitySearchArgs),
+    Get(OpportunityGetArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct OpportunitySearchArgs {
+    #[arg(long)]
+    pub query: Option<String>,
+
+    #[arg(long)]
+    pub pipeline: Option<String>,
+
+    #[arg(long)]
+    pub stage: Option<String>,
+
+    #[arg(long)]
+    pub contact: Option<String>,
+
+    #[arg(long, value_enum)]
+    pub status: Option<OpportunityStatusArg>,
+
+    #[arg(long)]
+    pub assigned_to: Option<String>,
+
+    #[arg(long, default_value_t = 20)]
+    pub limit: u32,
+
+    #[arg(long)]
+    pub page: Option<u32>,
+
+    #[arg(long)]
+    pub start_after_id: Option<String>,
+
+    #[arg(long)]
+    pub start_after: Option<u64>,
+}
+
+#[derive(Debug, Args)]
+pub struct OpportunityGetArgs {
+    pub opportunity_id: String,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+pub enum OpportunityStatusArg {
+    Open,
+    Won,
+    Lost,
+    Abandoned,
+    All,
+}
+
+impl From<OpportunityStatusArg> for ghl::OpportunityStatus {
+    fn from(value: OpportunityStatusArg) -> Self {
+        match value {
+            OpportunityStatusArg::Open => Self::Open,
+            OpportunityStatusArg::Won => Self::Won,
+            OpportunityStatusArg::Lost => Self::Lost,
+            OpportunityStatusArg::Abandoned => Self::Abandoned,
+            OpportunityStatusArg::All => Self::All,
         }
     }
 }

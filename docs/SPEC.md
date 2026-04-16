@@ -39,7 +39,7 @@ agents a working CRM spine before we bolt on every last GHL subsystem.
 
 ## Implementation Status Snapshot
 
-Last updated: 2026-04-16 during the conversations read slice.
+Last updated: 2026-04-16 during the opportunities and pipelines read slice.
 
 Implemented so far:
 
@@ -53,9 +53,10 @@ Implemented so far:
 - Local PIT commands: `auth pit add`, `auth pit list-local`, `auth pit remove-local`, `auth pit validate`, and `auth status`.
 - Profile commands: list, show, set default, set default company, set default location, and policy show/set/reset.
 - HTTP client spine for `services` and `backend` surfaces with PIT auth headers, redacted response handling, explicit `raw request` GET, and read-only PIT validation through `GET /locations/{location_id}`.
-- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, `conversations search`, `conversations get`, and `conversations messages`.
-- Contact and conversation read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
+- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
+- CRM read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
 - Conversation message bodies and preview bodies are redacted from normal response output.
+- Opportunity notes are redacted from normal response output.
 
 Remaining initial implementation priorities:
 
@@ -67,8 +68,8 @@ Remaining initial implementation priorities:
 - Per-location rate limiting, retries, and read-only caching.
 - Agent-safe write policy with dry-run, confirmation flags, and destructive
   guards.
-- Remaining initial command groups: opportunities, pipelines, calendars,
-  workflows read, smoke run, broader contact subcommands, and guarded messaging.
+- Remaining initial command groups: calendars, workflows read, smoke run,
+  broader contact/opportunity subcommands, and guarded messaging.
 
 ## 1. Product Summary
 
@@ -479,7 +480,7 @@ ghl conversations messages <conversation-id> [--limit <n>] [--last-message-id <i
 ghl messages send-sms --contact <id>|--conversation <id> --body <text> [--dry-run] [--yes]
 ghl messages send-email --contact <id>|--conversation <id> --subject <text> --body <text> [--dry-run] [--yes]
 
-ghl opportunities search [...filters]
+ghl opportunities search [--query <query>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--contact <contact-id>] [--status open|won|lost|abandoned|all] [--limit <n>]
 ghl opportunities get <opportunity-id>
 ghl opportunities create [...fields] [--dry-run]
 ghl opportunities update <opportunity-id> [...fields] [--dry-run]
@@ -2501,7 +2502,7 @@ Requirements:
 ### 50.1 Opportunity commands
 
 ```bash
-ghl opportunities search [--query <q>] [--pipeline <id>] [--stage <id>] [--status open|won|lost|abandoned] [--limit <n>]
+ghl opportunities search [--query <q>] [--pipeline <id>] [--stage <id>] [--contact <id>] [--status open|won|lost|abandoned|all] [--limit <n>]
 ghl opportunities get <opportunity-id>
 ghl opportunities create --name <name> --contact <id> --pipeline <id> --stage <id> [--value <amount>] [--dry-run]
 ghl opportunities update <opportunity-id> [...fields] [--dry-run]
@@ -2521,6 +2522,13 @@ ghl pipelines delete <pipeline-id> [--dry-run] --yes
 
 Pipeline rules from the reference:
 
+- Opportunity and pipeline reads require resolved location context.
+- `pipelines get` filters the `GET /opportunities/pipelines?locationId=...`
+  response client-side because the referenced API exposes pipeline read as a
+  list operation.
+- `opportunities search` must use underscore query names such as `location_id`,
+  `pipeline_id`, `pipeline_stage_id`, and `contact_id`.
+- Opportunity notes must be redacted in normal output.
 - Do not include `locationId` in pipeline update bodies.
 - GHL auto-creates Won and Lost stages. Commands must not add them manually.
 - Existing stages require `id` during update. New stages omit `id`.
@@ -3328,8 +3336,8 @@ references.
 - Implement conversation search/get/messages.
 - Implement broader conversation message reads, recordings, transcriptions, and attachment operations.
 - Implement messaging dry-run, then guarded real send.
-- Implement opportunities.
-- Implement pipelines.
+- Implement opportunity search/get.
+- Implement pipeline list/get.
 - Implement calendars and appointments.
 - Implement smoke run.
 - Implement pagination normalization for all MVP list commands.

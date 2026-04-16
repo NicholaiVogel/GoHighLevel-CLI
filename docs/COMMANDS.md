@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, plus read-only location, contact, and conversation commands.
+Status: Phase 1 auth/profile and HTTP spine, plus read-only location, contact, conversation, pipeline, and opportunity commands.
 
 Machine-readable command metadata is available with:
 
@@ -41,7 +41,11 @@ Implemented commands:
 - `ghl conversations search [--contact <contact-id>] [--query <query>] [--status all|read|unread|starred|recents] [--limit <n>] [--assigned-to <user-id>] [--last-message-type <type>] [--start-after-date <epoch-ms>]`
 - `ghl conversations get <conversation-id>`
 - `ghl conversations messages <conversation-id> [--limit <n>] [--last-message-id <id>] [--message-type <type>]`
+- `ghl pipelines list`
+- `ghl pipelines get <pipeline-id>`
+- `ghl opportunities search [--query <query>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--contact <contact-id>] [--status open|won|lost|abandoned|all] [--assigned-to <user-id>] [--limit <n>] [--page <n>] [--start-after-id <id>] [--start-after <cursor>]`
+- `ghl opportunities get <opportunity-id>`
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact search/get, and conversation search/get/messages only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens and message bodies are redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact search/get, conversation search/get/messages, pipeline list/get, and opportunity search/get only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, and opportunity notes are redacted from normal output.

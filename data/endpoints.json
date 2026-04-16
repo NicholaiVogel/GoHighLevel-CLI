@@ -7,6 +7,7 @@
     "references/ghl-internal-api-bible/01-auth/README.md",
     "references/ghl-internal-api-bible/01-auth/firebase-auth.md",
     "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+    "references/ghl-internal-api-bible/15-pipelines/endpoints.md",
     "references/ghl-internal-api-bible/reporting/README.md",
     "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts"
   ],
@@ -130,6 +131,57 @@
       "phase": "2",
       "command_keys": ["conversations.messages"],
       "response_schema": "ConversationMessagesResult"
+    },
+    {
+      "endpoint_key": "pipelines.list",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/opportunities/pipelines?locationId={location_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/15-pipelines/endpoints.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/opportunity-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["pipelines.list", "pipelines.get"],
+      "response_schema": "PipelineListResult"
+    },
+    {
+      "endpoint_key": "opportunities.search",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/opportunities/search?location_id={location_id}&limit={limit}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/ghl-internal-api-bible/reporting/README.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/opportunity-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["opportunities.search"],
+      "response_schema": "OpportunitySearchResult"
+    },
+    {
+      "endpoint_key": "opportunities.get",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/opportunities/{opportunity_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/opportunity-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["opportunities.get"],
+      "response_schema": "OpportunityGetResult"
     }
   ]
 }

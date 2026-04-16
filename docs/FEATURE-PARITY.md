@@ -1208,7 +1208,14 @@ typing, and write policy/audit gates.
 
 - `ghl opportunities search|get|create|update|upsert|delete|status`
 - `ghl opportunities followers add|remove`
-- `ghl pipelines list`
+- `ghl pipelines list|get`
+
+Implemented now: `ghl pipelines list`, `ghl pipelines get`, `ghl opportunities
+search`, and `ghl opportunities get` with PIT auth, resolved location context,
+dry-run previews, endpoint manifest entries, mock HTTP coverage, and opportunity
+note redaction. Remaining opportunity work is write safety, status changes,
+upsert, delete, followers, audit, idempotency, and duplicate-prevention
+preflights.
 
 ### Parity requirements
 
@@ -2067,7 +2074,7 @@ Feature parity is complete when:
 
 ## Immediate Next Steps
 
-1. Expand `data/endpoints.json` beyond the seeded location and contact read records.
+1. Expand `data/endpoints.json` beyond the seeded CRM read records.
 2. Add source-ref parsing for `ghl-internal-api-bible/*/endpoints.md`.
 3. Generate richer `docs/API-COVERAGE.md` tables from `data/reference-tools.json` and `data/endpoints.json`.
 4. Add planned command stubs to command metadata for all modules, even before implementation.

@@ -89,6 +89,8 @@ It gives you:
 | Locations | Get by id, list by company, search with the current upstream email filter |
 | Contacts | Search by query, exact email, or phone; get one contact by id |
 | Conversations | Search by contact/query/status, get one conversation, list messages with bodies redacted |
+| Pipelines | List pipelines; get one pipeline by id from the location pipeline list |
+| Opportunities | Search by contact/pipeline/stage/status; get one opportunity by id |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
 | Metadata | Command schema, endpoint manifest, error registry, shell completions |
@@ -160,6 +162,10 @@ Then fetch the location through the typed command:
 ./target/debug/ghl --profile default conversations search --contact <contact-id> --pretty
 ./target/debug/ghl --profile default conversations get <conversation-id> --pretty
 ./target/debug/ghl --profile default conversations messages <conversation-id> --pretty
+./target/debug/ghl --profile default pipelines list --pretty
+./target/debug/ghl --profile default pipelines get <pipeline-id> --pretty
+./target/debug/ghl --profile default opportunities search --contact <contact-id> --pretty
+./target/debug/ghl --profile default opportunities get <opportunity-id> --pretty
 ```
 
 `locations search` currently maps the search value to GHL's upstream email filter.
@@ -173,6 +179,7 @@ access, use local dry-run:
 ./target/debug/ghl locations get <location-id> --dry-run=local
 ./target/debug/ghl --location <location-id> contacts search "Sarah" --dry-run=local
 ./target/debug/ghl --location <location-id> conversations search --dry-run=local
+./target/debug/ghl --location <location-id> opportunities search --dry-run=local
 ```
 
 ## Current command surface
@@ -210,6 +217,12 @@ ghl contacts get <contact-id>
 ghl conversations search [--contact <contact-id>] [--query <query>] [--status all|read|unread|starred|recents] [--limit <n>]
 ghl conversations get <conversation-id>
 ghl conversations messages <conversation-id> [--limit <n>] [--last-message-id <id>] [--message-type <type>]
+
+ghl pipelines list
+ghl pipelines get <pipeline-id>
+
+ghl opportunities search [--contact <contact-id>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--status open|won|lost|abandoned|all] [--limit <n>]
+ghl opportunities get <opportunity-id>
 
 ghl raw request --surface services --method get --path /locations/<location-id>
 ghl raw request --surface backend --method get --path <path>
@@ -302,6 +315,7 @@ Implemented now:
 - Typed `locations get`, `locations list`, and `locations search`.
 - Typed `contacts search` and `contacts get`.
 - Typed `conversations search`, `conversations get`, and `conversations messages`.
+- Typed `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
 - Endpoint manifest seed.
 - Command metadata.
 - Stable error registry.
@@ -310,7 +324,7 @@ Implemented now:
 
 Current focus:
 
-- opportunities and pipelines read commands
+- smoke runner for safe real-account validation
 - stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend

@@ -262,6 +262,38 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             "2",
             &["conversations.messages"],
         ),
+        remote_pit(
+            "pipelines.list",
+            "pipelines list",
+            "List sales pipelines in the resolved location.",
+            "PipelineListResult",
+            "2",
+            &["pipelines.list"],
+        ),
+        remote_pit(
+            "pipelines.get",
+            "pipelines get <pipeline-id>",
+            "Fetch one sales pipeline by filtering the resolved location's pipeline list.",
+            "PipelineGetResult",
+            "2",
+            &["pipelines.list"],
+        ),
+        remote_pit(
+            "opportunities.search",
+            "opportunities search [--contact <contact-id>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--status <status>] [--limit <n>]",
+            "Search opportunities in the resolved location.",
+            "OpportunitySearchResult",
+            "2",
+            &["opportunities.search"],
+        ),
+        remote_pit(
+            "opportunities.get",
+            "opportunities get <opportunity-id>",
+            "Fetch one opportunity by id within the resolved location context.",
+            "OpportunityGetResult",
+            "2",
+            &["opportunities.get"],
+        ),
         local(
             "completions.bash",
             "completions bash",
@@ -385,6 +417,10 @@ mod tests {
         assert!(keys.contains(&"conversations.search"));
         assert!(keys.contains(&"conversations.get"));
         assert!(keys.contains(&"conversations.messages"));
+        assert!(keys.contains(&"pipelines.list"));
+        assert!(keys.contains(&"pipelines.get"));
+        assert!(keys.contains(&"opportunities.search"));
+        assert!(keys.contains(&"opportunities.get"));
         assert!(keys.contains(&"errors.list"));
         assert!(keys.contains(&"endpoints.coverage"));
         assert!(keys.contains(&"completions.bash"));
@@ -405,7 +441,11 @@ mod tests {
                 | "contacts.get"
                 | "conversations.search"
                 | "conversations.get"
-                | "conversations.messages" => {
+                | "conversations.messages"
+                | "pipelines.list"
+                | "pipelines.get"
+                | "opportunities.search"
+                | "opportunities.get" => {
                     assert!(!command.offline, "{}", command.command_key);
                     assert_eq!(command.auth_classes, vec!["pit".to_owned()]);
                 }
