@@ -1,0 +1,38 @@
+//! Core library for the unofficial Go High Level CLI.
+//!
+//! Phase 0 intentionally contains only local scaffolding: config path resolution,
+//! command metadata, endpoint manifest loading, and the stable error registry.
+
+pub mod auth;
+pub mod client;
+pub mod config;
+pub mod credentials;
+pub mod endpoints;
+pub mod errors;
+pub mod locations;
+pub mod metadata;
+pub mod profiles;
+pub mod redaction;
+pub mod surfaces;
+
+pub use auth::{
+    AuthStatus, LocalPitList, PitAddResult, PitRemoveResult, add_pit, auth_status, list_local_pits,
+    remove_local_pit,
+};
+pub use client::{
+    AuthClass, PitValidationResult, RawGetRequest, RawGetResponse, raw_get, validate_pit,
+};
+pub use config::{CliConfig, ConfigDoctor, ConfigPaths, resolve_paths, resolve_paths_from_env};
+pub use credentials::{
+    CredentialStore, RedactedCredential, credential_ref, load_credentials, save_credentials,
+};
+pub use endpoints::{EndpointCoverage, EndpointDefinition, EndpointManifest, bundled_manifest};
+pub use errors::{ErrorDefinition, GhlError, Result, error_definitions, find_error_definition};
+pub use locations::{LocationGetDryRun, LocationGetResult, get_location, get_location_dry_run};
+pub use metadata::{CommandMetadata, CommandSchema, command_schema};
+pub use profiles::{
+    Profile, ProfileDefaultResult, ProfileList, ProfileLocationResult, ProfilePolicy,
+    ProfilePolicyPatch, ProfilesFile, load_profiles, save_profiles, set_default_location,
+    set_default_profile,
+};
+pub use surfaces::Surface;

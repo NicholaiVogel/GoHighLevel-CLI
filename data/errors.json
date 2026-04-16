@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "errors": [
+    { "code": "general_error", "exit_code": 1, "title": "General error" },
+    { "code": "validation_error", "exit_code": 2, "title": "CLI validation error" },
+    { "code": "authentication_error", "exit_code": 3, "title": "Authentication error" },
+    { "code": "authorization_error", "exit_code": 4, "title": "Authorization error" },
+    { "code": "network_error", "exit_code": 5, "title": "Network error" },
+    { "code": "ghl_api_error", "exit_code": 6, "title": "GHL API error" },
+    { "code": "auth_class_unavailable", "exit_code": 7, "title": "Required auth class unavailable" },
+    { "code": "parse_error", "exit_code": 8, "title": "Parse error" },
+    { "code": "file_io_error", "exit_code": 9, "title": "Local file I/O error" },
+    { "code": "timeout", "exit_code": 10, "title": "Timeout" },
+    { "code": "rate_limit_exceeded", "exit_code": 11, "title": "Rate limit exceeded" },
+    { "code": "policy_denied", "exit_code": 12, "title": "Profile policy denied" },
+    { "code": "capability_unavailable", "exit_code": 13, "title": "Capability unavailable" },
+    { "code": "schema_validation_failed", "exit_code": 14, "title": "Schema validation failed" },
+    { "code": "confirmation_required", "exit_code": 15, "title": "Confirmation required" },
+    { "code": "lock_unavailable", "exit_code": 16, "title": "Local lock unavailable" },
+    { "code": "offline_blocked", "exit_code": 17, "title": "Offline mode blocked command" }
+  ]
+}
