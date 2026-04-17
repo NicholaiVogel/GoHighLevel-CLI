@@ -18,6 +18,10 @@ The first implemented endpoint records are:
 - `calendars.get`, used by read-only calendar get.
 - `calendars.events`, used by summary-only calendar event reads.
 - `calendars.free_slots`, used by read-only calendar availability reads.
+- `users.list`, used by summary-only user and team-member list reads.
+- `users.get`, used by read-only user get.
+- `users.search`, used by company-scoped user search.
+- `users.filter_by_email`, used by location-scoped exact email lookup.
 
 Manifest fields:
 

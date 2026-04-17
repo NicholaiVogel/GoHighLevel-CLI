@@ -21,6 +21,7 @@ pub mod profiles;
 pub mod redaction;
 pub mod smoke;
 pub mod surfaces;
+pub mod users;
 
 pub use auth::{
     AuthStatus, LocalPitList, PitAddResult, PitRemoveResult, add_pit, auth_status, list_local_pits,
@@ -84,3 +85,8 @@ pub use smoke::{
     smoke_run, smoke_run_dry_run,
 };
 pub use surfaces::Surface;
+pub use users::{
+    UserGetDryRun, UserGetResult, UserListDryRun, UserListOptions, UserListResult,
+    UserSearchDryRun, UserSearchMode, UserSearchOptions, UserSearchResult, UserSortDirection,
+    get_user, get_user_dry_run, list_users, search_users, users_list_dry_run, users_search_dry_run,
+};

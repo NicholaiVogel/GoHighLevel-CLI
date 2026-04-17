@@ -18,8 +18,12 @@ The bundled endpoint manifest currently includes:
 - `calendars.get`
 - `calendars.events`
 - `calendars.free_slots`
+- `users.list`
+- `users.get`
+- `users.search`
+- `users.filter_by_email`
 
-They back PIT validation, location get/list/search, contact reads, conversation/message reads, pipeline reads, opportunity reads, and calendar reads. Additional endpoint records will be added with each auth and CRM slice.
+They back PIT validation, location get/list/search, contact reads, conversation/message reads, pipeline reads, opportunity reads, calendar reads, and user/team-member reads. Additional endpoint records will be added with each auth and CRM slice.
 
 Inspect current coverage:
 

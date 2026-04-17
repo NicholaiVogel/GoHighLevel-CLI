@@ -2792,10 +2792,18 @@ is later work.
 ghl users list
 ghl users get <user-id>
 ghl users search --email <email>
+ghl users search --query <query>
 ghl teams list
 ghl roles list
 ghl roles get <role-id>
 ```
+
+Current implementation:
+
+- `users list` and `teams list` call `GET /users/?locationId=...` and return summary counts and ids. The live endpoint accepts only `locationId` for this read path, so CLI `--skip` and `--limit` are client-side output windows.
+- `users get` calls `GET /users/{user_id}` with token-like redaction.
+- `users search --email` calls `POST /users/search/filter-by-email` using location context.
+- `users search --query` calls `GET /users/search` using company context.
 
 Requirements:
 
@@ -3418,7 +3426,7 @@ references.
 - Implement Agent Studio.
 - Implement webhooks.
 - Implement OAuth, marketplace, and remote integration commands.
-- Implement users, teams, and roles reads.
+- Implement roles reads after the user/team-member read slice.
 - Implement custom objects, associations, marketplace, and SaaS.
 
 ### 73.7 Phase 6: distribution and agent experience

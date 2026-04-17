@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, plus read-only location, contact, conversation, pipeline, opportunity, and smoke commands.
+Status: Phase 1 auth/profile and HTTP spine, plus read-only location, contact, conversation, pipeline, opportunity, calendar, user/team, and smoke commands.
 
 Machine-readable command metadata is available with:
 
@@ -50,8 +50,13 @@ Implemented commands:
 - `ghl calendars get <calendar-id>`
 - `ghl calendars events [--calendar <id>] [--date <date>] [--from <datetime>] [--to <datetime>]`
 - `ghl calendars free-slots --calendar <id> --date <date> [--timezone <timezone>]`
-- `ghl smoke run [--limit <n>] [--skip-optional] [--contact-query <query>] [--contact-email <email>] [--contact-phone <phone>] [--contact-id <id>] [--conversation-id <id>] [--pipeline-id <id>] [--opportunity-id <id>] [--calendar-id <id>] [--calendar-date <date>] [--calendar-timezone <timezone>]`
+- `ghl users list [--skip <n>] [--limit <n>]`
+- `ghl users get <user-id>`
+- `ghl users search --email <email>`
+- `ghl users search --query <query> [--company <company-id>] [--skip <n>] [--limit <n>]`
+- `ghl teams list [--skip <n>] [--limit <n>]`
+- `ghl smoke run [--limit <n>] [--skip-optional] [--contact-query <query>] [--contact-email <email>] [--contact-phone <phone>] [--contact-id <id>] [--conversation-id <id>] [--pipeline-id <id>] [--opportunity-id <id>] [--calendar-id <id>] [--calendar-date <date>] [--calendar-timezone <timezone>] [--user-id <id>] [--user-email <email>] [--user-query <query>]`
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, user/team-member list/get/search, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.

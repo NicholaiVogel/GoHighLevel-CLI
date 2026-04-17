@@ -8,7 +8,8 @@ use commands::{
     AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand, Cli, Command, CommandsCommand,
     ConfigCommand, ContactsCommand, ConversationsCommand, EndpointsCommand, ErrorsCommand,
     LocationsCommand, OpportunitiesCommand, PipelinesCommand, ProfilePolicyCommand,
-    ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs,
+    ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs, TeamsCommand,
+    UserListArgs, UsersCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -729,6 +730,121 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+
+        Command::Users(UsersCommand::List(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = user_list_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::users_list_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::list_users(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Users(UsersCommand::Get(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::get_user_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.user_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::get_user(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.user_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Users(UsersCommand::Search(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::UserSearchOptions {
+                query: args.query,
+                email: args.email,
+                skip: args.skip,
+                limit: args.limit,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::users_search_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        selected_company.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::search_users(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        selected_company.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Teams(TeamsCommand::List(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = user_list_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::users_list_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::list_users(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
         Command::Smoke(SmokeCommand::Run(args)) => {
             let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
             let options = smoke_options(args);
@@ -874,6 +990,21 @@ fn smoke_options(args: SmokeRunArgs) -> ghl::SmokeRunOptions {
         calendar_id: args.calendar_id,
         calendar_date: args.calendar_date,
         calendar_timezone: args.calendar_timezone,
+        user_id: args.user_id,
+        user_email: args.user_email,
+        user_query: args.user_query,
+    }
+}
+
+fn user_list_options(args: UserListArgs) -> ghl::UserListOptions {
+    ghl::UserListOptions {
+        skip: args.skip,
+        limit: args.limit,
+        user_type: None,
+        role: None,
+        ids: None,
+        sort: None,
+        sort_direction: None,
     }
 }
 
@@ -892,6 +1023,8 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
             | Command::Pipelines(_)
             | Command::Opportunities(_)
             | Command::Calendars(_)
+            | Command::Users(_)
+            | Command::Teams(_)
             | Command::Smoke(_)
     )
 }
@@ -911,6 +1044,8 @@ fn command_name(command: &Command) -> String {
         Command::Pipelines(_) => "pipelines".to_owned(),
         Command::Opportunities(_) => "opportunities".to_owned(),
         Command::Calendars(_) => "calendars".to_owned(),
+        Command::Users(_) => "users".to_owned(),
+        Command::Teams(_) => "teams".to_owned(),
         Command::Smoke(_) => "smoke".to_owned(),
         Command::Completions(_) => "completions".to_owned(),
         Command::Man => "man".to_owned(),

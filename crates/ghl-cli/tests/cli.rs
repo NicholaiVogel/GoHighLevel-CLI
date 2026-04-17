@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_implemented_read_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 14);
-    assert_eq!(value["data"]["command_mapped_count"], 14);
-    assert_eq!(value["data"]["implemented_count"], 14);
+    assert_eq!(value["data"]["endpoint_count"], 18);
+    assert_eq!(value["data"]["command_mapped_count"], 18);
+    assert_eq!(value["data"]["implemented_count"], 18);
 }
 
 #[test]
@@ -904,6 +904,144 @@ fn calendars_free_slots_dry_run_builds_slot_query() {
 }
 
 #[test]
+fn users_list_dry_run_uses_location_context() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "users",
+            "list",
+            "--limit",
+            "5",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["path"], "/users/?locationId=loc_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn teams_list_dry_run_aliases_users_endpoint() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "teams",
+            "list",
+            "--limit",
+            "5",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["path"], "/users/?locationId=loc_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn users_get_dry_run_requires_location_context() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "users",
+            "get",
+            "user_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["path"], "/users/user_123");
+    assert_eq!(value["data"]["location_id"], "loc_123");
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn users_search_dry_run_supports_email_and_query_modes() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let by_email = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "users",
+            "search",
+            "--email",
+            "person@example.com",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let by_email: Value = serde_json::from_slice(&by_email).expect("json");
+    assert_eq!(by_email["data"]["method"], "POST");
+    assert_eq!(by_email["data"]["path"], "/users/search/filter-by-email");
+    assert_eq!(by_email["data"]["search_mode"], "email");
+    assert_eq!(
+        by_email["data"]["request_body_json"]["locationId"],
+        "loc_123"
+    );
+
+    let by_query = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--company",
+            "company_123",
+            "users",
+            "search",
+            "--query",
+            "Person",
+            "--limit",
+            "10",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let by_query: Value = serde_json::from_slice(&by_query).expect("json");
+    assert_eq!(by_query["data"]["method"], "GET");
+    assert_eq!(by_query["data"]["search_mode"], "query");
+    assert_eq!(
+        by_query["data"]["path"],
+        "/users/search?companyId=company_123&query=Person&skip=0&limit=10"
+    );
+}
+
+#[test]
 fn smoke_run_dry_run_reports_statuses_without_customer_data() {
     let temp = tempfile::tempdir().expect("tempdir");
     let output = ghl_cli()
@@ -935,6 +1073,10 @@ fn smoke_run_dry_run_reports_statuses_without_customer_data() {
             "2026-02-27",
             "--calendar-timezone",
             "America/Denver",
+            "--user-id",
+            "user_123",
+            "--user-email",
+            "person@example.com",
         ])
         .assert()
         .success()
@@ -965,6 +1107,12 @@ fn smoke_run_dry_run_reports_statuses_without_customer_data() {
                 && check["status"] == "planned"
                 && check["required"] == false)
     );
+    assert!(checks.iter().any(|check| check["name"] == "users.list"
+        && check["status"] == "planned"
+        && check["required"] == true));
+    assert!(checks.iter().any(|check| check["name"] == "users.search"
+        && check["status"] == "planned"
+        && check["required"] == false));
     assert!(!rendered.contains("person@example.com"));
 }
 
@@ -1163,6 +1311,26 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "calendars.free_slots")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "users.list")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "users.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "users.search")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "teams.list")
     );
     assert!(
         commands

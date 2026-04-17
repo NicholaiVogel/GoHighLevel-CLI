@@ -112,6 +112,12 @@ pub enum Command {
     Calendars(CalendarsCommand),
 
     #[command(subcommand)]
+    Users(UsersCommand),
+
+    #[command(subcommand)]
+    Teams(TeamsCommand),
+
+    #[command(subcommand)]
     Smoke(SmokeCommand),
 
     Completions(CompletionsArgs),
@@ -570,6 +576,51 @@ pub struct CalendarFreeSlotsArgs {
 }
 
 #[derive(Debug, Subcommand)]
+pub enum UsersCommand {
+    List(UserListArgs),
+    Get(UserGetArgs),
+    Search(UserSearchArgs),
+}
+
+#[derive(Debug, Subcommand)]
+pub enum TeamsCommand {
+    List(UserListArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct UserListArgs {
+    /// Client-side offset applied after fetching the location user list.
+    #[arg(long, default_value_t = 0)]
+    pub skip: u32,
+
+    /// Client-side maximum number of user IDs to print.
+    #[arg(long, default_value_t = 25)]
+    pub limit: u32,
+}
+
+#[derive(Debug, Args)]
+pub struct UserGetArgs {
+    pub user_id: String,
+}
+
+#[derive(Debug, Args)]
+pub struct UserSearchArgs {
+    /// Company-wide user search query. Requires company context.
+    #[arg(long)]
+    pub query: Option<String>,
+
+    /// Location-scoped exact email lookup. Requires location context.
+    #[arg(long)]
+    pub email: Option<String>,
+
+    #[arg(long, default_value_t = 0)]
+    pub skip: u32,
+
+    #[arg(long, default_value_t = 25)]
+    pub limit: u32,
+}
+
+#[derive(Debug, Subcommand)]
 pub enum SmokeCommand {
     Run(SmokeRunArgs),
 }
@@ -611,6 +662,15 @@ pub struct SmokeRunArgs {
 
     #[arg(long)]
     pub calendar_timezone: Option<String>,
+
+    #[arg(long)]
+    pub user_id: Option<String>,
+
+    #[arg(long)]
+    pub user_email: Option<String>,
+
+    #[arg(long)]
+    pub user_query: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]

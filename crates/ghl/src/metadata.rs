@@ -335,6 +335,38 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             &["calendars.free_slots"],
         ),
         remote_pit(
+            "users.list",
+            "users list [--skip <n>] [--limit <n>]",
+            "List user ids and counts for team members in the resolved location without printing user bodies.",
+            "UserListResult",
+            "2",
+            &["users.list"],
+        ),
+        remote_pit(
+            "users.get",
+            "users get <user-id>",
+            "Fetch one user by id within the resolved location context.",
+            "UserGetResult",
+            "2",
+            &["users.get"],
+        ),
+        remote_pit(
+            "users.search",
+            "users search --query <query> | --email <email>",
+            "Search users by company-scoped query or location-scoped exact email lookup.",
+            "UserSearchResult",
+            "2",
+            &["users.search", "users.filter_by_email"],
+        ),
+        remote_pit(
+            "teams.list",
+            "teams list [--skip <n>] [--limit <n>]",
+            "Alias team-member listing to GHL's users endpoint for the resolved location.",
+            "UserListResult",
+            "2",
+            &["users.list"],
+        ),
+        remote_pit(
             "smoke.run",
             "smoke run [--limit <n>] [--skip-optional]",
             "Run safe read-only smoke checks against the selected profile and location without printing customer data.",
@@ -355,6 +387,10 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
                 "calendars.get",
                 "calendars.events",
                 "calendars.free_slots",
+                "users.list",
+                "users.get",
+                "users.search",
+                "users.filter_by_email",
             ],
         ),
         local(
@@ -489,6 +525,10 @@ mod tests {
         assert!(keys.contains(&"calendars.get"));
         assert!(keys.contains(&"calendars.events"));
         assert!(keys.contains(&"calendars.free_slots"));
+        assert!(keys.contains(&"users.list"));
+        assert!(keys.contains(&"users.get"));
+        assert!(keys.contains(&"users.search"));
+        assert!(keys.contains(&"teams.list"));
         assert!(keys.contains(&"smoke.run"));
         assert!(keys.contains(&"errors.list"));
         assert!(keys.contains(&"endpoints.coverage"));
@@ -520,6 +560,10 @@ mod tests {
                 | "calendars.get"
                 | "calendars.events"
                 | "calendars.free_slots"
+                | "users.list"
+                | "users.get"
+                | "users.search"
+                | "teams.list"
                 | "smoke.run" => {
                     assert!(!command.offline, "{}", command.command_key);
                     assert_eq!(command.auth_classes, vec!["pit".to_owned()]);

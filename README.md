@@ -92,6 +92,7 @@ It gives you:
 | Pipelines | List pipelines; get one pipeline by id from the location pipeline list |
 | Opportunities | Search by contact/pipeline/stage/status; get one opportunity by id |
 | Calendars | List calendars, get one calendar, summarize events, and fetch free slots |
+| Users and teams | Summary-only team-member list, get one user, and search by query or exact email |
 | Smoke | Read-only `smoke run` with status/count output and no customer data |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
@@ -99,7 +100,7 @@ It gives you:
 | Docs | Product spec, command reference, network notes, smoke guide, coverage plan |
 
 The current implementation is intentionally small. It can connect to a test
-location, prove the auth path works, and perform the first read-only CRM slices.
+location, prove the auth path works, and perform the first read-only CRM and team-member slices.
 All writes are still being built.
 
 ## Quick start
@@ -191,6 +192,9 @@ You can also fetch individual resources through the typed commands:
 ./target/debug/ghl --profile default calendars list --pretty
 ./target/debug/ghl --profile default calendars events --calendar <calendar-id> --date 2026-04-17 --pretty
 ./target/debug/ghl --profile default calendars free-slots --calendar <calendar-id> --date 2026-04-17 --timezone America/Denver --pretty
+./target/debug/ghl --profile default users list --limit 5 --pretty
+./target/debug/ghl --profile default teams list --limit 5 --pretty
+./target/debug/ghl --profile default users search --email person@example.com --pretty
 ```
 
 `locations search` currently maps the search value to GHL's upstream email filter.
@@ -207,6 +211,8 @@ access, use local dry-run:
 ./target/debug/ghl --location <location-id> conversations search --dry-run=local
 ./target/debug/ghl --location <location-id> opportunities search --dry-run=local
 ./target/debug/ghl --location <location-id> calendars list --dry-run=local
+./target/debug/ghl --location <location-id> users list --dry-run=local
+./target/debug/ghl --location <location-id> users search --email person@example.com --dry-run=local
 ./target/debug/ghl --location <location-id> smoke run --dry-run=local --pretty
 ```
 
@@ -257,6 +263,12 @@ ghl calendars list [--group <id>]
 ghl calendars get <calendar-id>
 ghl calendars events [--calendar <calendar-id>] [--date <date>] [--from <datetime>] [--to <datetime>]
 ghl calendars free-slots --calendar <calendar-id> --date <date> [--timezone <timezone>]
+
+ghl users list [--skip <n>] [--limit <n>]
+ghl users get <user-id>
+ghl users search --email <email>
+ghl users search --query <query> [--company <company-id>]
+ghl teams list [--skip <n>] [--limit <n>]
 
 ghl smoke run [--limit <n>] [--skip-optional]
 
@@ -353,6 +365,7 @@ Implemented now:
 - Typed `conversations search`, `conversations get`, and `conversations messages`.
 - Typed `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
 - Typed `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
+- Typed `users list`, `users get`, `users search`, and `teams list`, with user list pagination applied client-side because the live endpoint only accepts `locationId`.
 - Read-only `smoke run` for safe real-account validation.
 - Endpoint manifest seed.
 - Command metadata.

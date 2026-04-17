@@ -18,6 +18,9 @@ pub struct SmokeRunOptions {
     pub calendar_id: Option<String>,
     pub calendar_date: Option<String>,
     pub calendar_timezone: Option<String>,
+    pub user_id: Option<String>,
+    pub user_email: Option<String>,
+    pub user_query: Option<String>,
 }
 
 impl Default for SmokeRunOptions {
@@ -35,6 +38,9 @@ impl Default for SmokeRunOptions {
             calendar_id: None,
             calendar_date: None,
             calendar_timezone: None,
+            user_id: None,
+            user_email: None,
+            user_query: None,
         }
     }
 }
@@ -219,6 +225,12 @@ fn smoke_run_inner(
         limit,
     ));
     checks.push(check_calendars_list(paths, profile_name, location_override));
+    checks.push(check_users_list(
+        paths,
+        profile_name,
+        location_override,
+        limit,
+    ));
 
     if !options.skip_optional {
         push_optional_live_checks(
@@ -226,6 +238,7 @@ fn smoke_run_inner(
             paths,
             profile_name,
             location_override,
+            company_override,
             options,
             limit,
         );
@@ -385,6 +398,12 @@ fn push_planned_checks(
         Some("calendars.list"),
         "would GET /calendars/",
     ));
+    checks.push(planned(
+        "users.list",
+        true,
+        Some("users.list"),
+        &format!("would GET /users/ with limit {limit}"),
+    ));
 
     if options.skip_optional {
         return;
@@ -453,6 +472,24 @@ fn push_planned_checks(
         Some("calendars.free_slots"),
         "pass --calendar-id and --calendar-date",
     );
+    optional_plan_or_skip(
+        checks,
+        options.user_id.is_some(),
+        "users.get",
+        Some("users.get"),
+        "pass --user-id",
+    );
+    optional_plan_or_skip(
+        checks,
+        has_user_search_input(options),
+        "users.search",
+        Some(if options.user_email.is_some() {
+            "users.filter_by_email"
+        } else {
+            "users.search"
+        }),
+        "pass --user-email or --user-query",
+    );
 }
 
 fn push_optional_live_checks(
@@ -460,6 +497,7 @@ fn push_optional_live_checks(
     paths: &crate::ConfigPaths,
     profile_name: Option<&str>,
     location_override: Option<&str>,
+    company_override: Option<&str>,
     options: SmokeRunOptions,
     limit: u32,
 ) {
@@ -608,6 +646,40 @@ fn push_optional_live_checks(
             false,
             Some("calendars.free_slots"),
             "pass --calendar-id and --calendar-date",
+        ));
+    }
+
+    if let Some(user_id) = options.user_id.as_deref() {
+        checks.push(check_user_get(
+            paths,
+            profile_name,
+            location_override,
+            user_id,
+        ));
+    } else {
+        checks.push(skipped(
+            "users.get",
+            false,
+            Some("users.get"),
+            "pass --user-id",
+        ));
+    }
+
+    if has_user_search_input(&options) {
+        checks.push(check_users_search(
+            paths,
+            profile_name,
+            location_override,
+            company_override,
+            &options,
+            limit,
+        ));
+    } else {
+        checks.push(skipped(
+            "users.search",
+            false,
+            Some("users.search"),
+            "pass --user-email or --user-query",
         ));
     }
 }
@@ -805,6 +877,53 @@ fn check_calendars_list(
     }
 }
 
+fn check_users_list(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    limit: u32,
+) -> SmokeCheck {
+    let result = crate::list_users(
+        paths,
+        profile_name,
+        location_override,
+        crate::UserListOptions {
+            skip: 0,
+            limit,
+            user_type: None,
+            role: None,
+            ids: None,
+            sort: None,
+            sort_direction: None,
+        },
+    );
+    match result {
+        Ok(result) if result.success => passed(
+            "users.list",
+            true,
+            Some("users.list"),
+            Some(result.status),
+            Some(result.count),
+        ),
+        Ok(result) => failed(
+            "users.list",
+            true,
+            Some("users.list"),
+            Some("ghl_api_error"),
+            "request completed but did not return a success status",
+        )
+        .with_http_status(result.status)
+        .with_count(Some(result.count)),
+        Err(error) => failed(
+            "users.list",
+            true,
+            Some("users.list"),
+            Some(error.code()),
+            error.to_string(),
+        ),
+    }
+}
+
 fn check_calendar_get(
     paths: &crate::ConfigPaths,
     profile_name: Option<&str>,
@@ -909,6 +1028,68 @@ fn check_calendar_free_slots(
             "calendars.free_slots",
             false,
             Some("calendars.free_slots"),
+            Some(error.code()),
+            error.to_string(),
+        ),
+    }
+}
+
+fn check_user_get(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    user_id: &str,
+) -> SmokeCheck {
+    let result = crate::get_user(paths, profile_name, location_override, user_id);
+    response_check("users.get", false, Some("users.get"), result, |_| None)
+}
+
+fn check_users_search(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    company_override: Option<&str>,
+    options: &SmokeRunOptions,
+    limit: u32,
+) -> SmokeCheck {
+    let result = crate::search_users(
+        paths,
+        profile_name,
+        location_override,
+        company_override,
+        crate::UserSearchOptions {
+            query: options.user_query.clone(),
+            email: options.user_email.clone(),
+            skip: 0,
+            limit,
+        },
+    );
+    let endpoint_key = if options.user_email.is_some() {
+        "users.filter_by_email"
+    } else {
+        "users.search"
+    };
+    match result {
+        Ok(result) if result.success => passed(
+            "users.search",
+            false,
+            Some(endpoint_key),
+            Some(result.status),
+            Some(result.count),
+        ),
+        Ok(result) => failed(
+            "users.search",
+            false,
+            Some(endpoint_key),
+            Some("ghl_api_error"),
+            "request completed but did not return a success status",
+        )
+        .with_http_status(result.status)
+        .with_count(Some(result.count)),
+        Err(error) => failed(
+            "users.search",
+            false,
+            Some(endpoint_key),
             Some(error.code()),
             error.to_string(),
         ),
@@ -1090,6 +1271,7 @@ impl_smoke_response!(
     crate::CalendarListResult,
     crate::CalendarGetResult,
     crate::CalendarFreeSlotsResult,
+    crate::UserGetResult,
     crate::ContactSearchResult,
     crate::ContactGetResult,
     crate::ConversationGetResult,
@@ -1133,6 +1315,17 @@ where
             error.to_string(),
         ),
     }
+}
+
+fn has_user_search_input(options: &SmokeRunOptions) -> bool {
+    options
+        .user_query
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty())
+        || options
+            .user_email
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
 }
 
 fn has_contact_search_input(options: &SmokeRunOptions) -> bool {
@@ -1376,6 +1569,15 @@ mod tests {
                 "calendars": [{ "id": "cal_123", "name": "Discovery" }]
             }));
         });
+        server.mock(|when, then| {
+            when.method(GET)
+                .path("/users/")
+                .query_param("locationId", "loc_123");
+            then.status(200).json_body(json!({
+                "users": [{ "id": "user_123", "email": "person@example.com" }],
+                "total": 1
+            }));
+        });
 
         let temp = tempfile::tempdir().expect("tempdir");
         let paths = resolve_paths(Some(temp.path()));
@@ -1441,6 +1643,10 @@ mod tests {
         server.mock(|when, then| {
             when.method(GET).path("/calendars/");
             then.status(200).json_body(json!({ "calendars": [] }));
+        });
+        server.mock(|when, then| {
+            when.method(GET).path("/users/");
+            then.status(200).json_body(json!({ "users": [] }));
         });
 
         let temp = tempfile::tempdir().expect("tempdir");

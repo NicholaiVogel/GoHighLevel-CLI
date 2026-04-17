@@ -247,6 +247,66 @@
       "phase": "2",
       "command_keys": ["calendars.free_slots"],
       "response_schema": "CalendarFreeSlotsResult"
+    },
+    {
+      "endpoint_key": "users.list",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/users/?locationId={location_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/users-tools.ts"
+      ],
+      "risk": "medium",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["users.list", "teams.list"],
+      "response_schema": "UserListResult"
+    },
+    {
+      "endpoint_key": "users.get",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/users/{user_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/users-tools.ts"
+      ],
+      "risk": "medium",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["users.get"],
+      "response_schema": "UserGetResult"
+    },
+    {
+      "endpoint_key": "users.search",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/users/search?companyId={company_id}&query={query}&skip={skip}&limit={limit}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/users-tools.ts"
+      ],
+      "risk": "medium",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["users.search"],
+      "response_schema": "UserSearchResult"
+    },
+    {
+      "endpoint_key": "users.filter_by_email",
+      "surface": "services",
+      "method": "POST",
+      "path_template": "/users/search/filter-by-email",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/users-tools.ts"
+      ],
+      "risk": "medium",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["users.search"],
+      "response_schema": "UserSearchResult"
     }
   ]
 }
