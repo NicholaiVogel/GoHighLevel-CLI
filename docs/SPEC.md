@@ -62,7 +62,7 @@ Implemented so far:
 - `calendars events` returns event IDs/counts rather than appointment bodies; free-slot reads return availability slots.
 - Local audit journal spine: `audit list`, `audit show`, and `audit export`.
 - Local idempotency cache spine: stable redacted request hashes, key conflict checks, and `idempotency list/show/clear`.
-- First guarded write command: `appointments create` with dry-run audit, real-write confirmation, profile policy blocking, idempotency, and free-slot preflight.
+- Guarded appointment writes: `appointments create`, `appointments update`, and `appointments cancel` with dry-run audit, real-write confirmation, profile policy blocking, and idempotency. Create also performs a free-slot preflight.
 
 Remaining initial implementation priorities:
 
@@ -506,7 +506,7 @@ ghl calendars events [...filters]
 ghl calendars free-slots --calendar <id> --date <date>
 ghl appointments create [...fields] [--dry-run]
 ghl appointments update <appointment-id> [...fields] [--dry-run]
-ghl appointments delete <appointment-id> --yes
+ghl appointments cancel <appointment-id> --yes
 
 ghl workflows list
 ghl workflows get <workflow-id> [--full]
@@ -2578,7 +2578,7 @@ ghl calendars events --calendar <id> [--from <datetime>] [--to <datetime>] [--da
 ghl calendars free-slots --calendar <id> --date <date>
 ghl appointments create --calendar <id> --contact <id> --starts-at <datetime> --ends-at <datetime> [--dry-run]
 ghl appointments update <appointment-id> [...fields] [--dry-run]
-ghl appointments delete <appointment-id> [--dry-run] --yes
+ghl appointments cancel <appointment-id> [--dry-run] --yes
 ghl appointments notes list <appointment-id>
 ghl appointments notes create <appointment-id> --body <text>|--from-file <path> [--dry-run]
 ```
@@ -2586,7 +2586,7 @@ ghl appointments notes create <appointment-id> --body <text>|--from-file <path> 
 Requirements:
 
 - Appointment creation should validate start/end ordering locally.
-- Appointment creation is implemented now for `POST /calendars/events/appointments`. Dry-run writes a redacted audit entry without network mutation. Real create requires global `--yes`, `allow_destructive`, an idempotency key, and a free-slot preflight unless explicitly skipped.
+- Appointment create/update/cancel are implemented now for `POST /calendars/events/appointments`, `PUT /calendars/events/appointments/{eventId}`, and `DELETE /calendars/events/appointments/{eventId}`. Dry-run writes a redacted audit entry without network mutation. Real writes require global `--yes`, `allow_destructive`, and an idempotency key. Create also requires a free-slot preflight unless explicitly skipped.
 - Free-slot reads should be available before appointment creation.
 - Delete requires `--yes` and `allow_destructive`.
 - Timezone handling must preserve profile location timezone when known.
@@ -3411,10 +3411,10 @@ references.
 - Implement messaging dry-run, then guarded real send.
 - Implement opportunity search/get.
 - Implement pipeline list/get.
-- Implement appointment writes and broader calendar resources.
+- Implement appointment notes and broader calendar resources.
 - Implement pagination normalization for all MVP list commands.
-- Extend the implemented audit/idempotency write pattern from appointment create into contacts, opportunities, and pipelines.
-- Implement appointment update/cancel and appointment notes with the same guarded write pattern.
+- Extend the implemented audit/idempotency write pattern from appointments into contacts, opportunities, and pipelines.
+- Implement appointment notes with the same guarded write pattern.
 - Implement fixture capture and fixture scanning for MVP endpoint families.
 - Expand doctor shape checks and optional fixture-driven drift checks.
 - Expand capabilities with live permission probes when safe endpoints expose them.

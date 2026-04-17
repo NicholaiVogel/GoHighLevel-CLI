@@ -29,9 +29,11 @@ pub mod surfaces;
 pub mod users;
 
 pub use appointments::{
-    AppointmentCreateDryRun, AppointmentCreateOptions, AppointmentCreateResult,
-    AppointmentPreflightSummary, AppointmentStatus, PreflightStatus, create_appointment,
-    create_appointment_dry_run,
+    AppointmentCancelDryRun, AppointmentCancelOptions, AppointmentCreateDryRun,
+    AppointmentCreateOptions, AppointmentCreateResult, AppointmentPreflightSummary,
+    AppointmentStatus, AppointmentUpdateDryRun, AppointmentUpdateOptions, AppointmentUpdateStatus,
+    AppointmentWriteResult, PreflightStatus, cancel_appointment, cancel_appointment_dry_run,
+    create_appointment, create_appointment_dry_run, update_appointment, update_appointment_dry_run,
 };
 pub use audit::{
     AuditEntry, AuditEntryInput, AuditExportResult, AuditListOptions, AuditListResult,
@@ -55,8 +57,9 @@ pub use capabilities::{
     check_capability,
 };
 pub use client::{
-    AuthClass, PitValidationResult, RawGetRequest, RawGetResponse, RawPostJsonRequest,
-    RawPostJsonResponse, post_json, raw_get, validate_pit,
+    AuthClass, PitValidationResult, RawDeleteRequest, RawDeleteResponse, RawGetRequest,
+    RawGetResponse, RawPostJsonRequest, RawPostJsonResponse, RawPutJsonRequest, RawPutJsonResponse,
+    delete, post_json, put_json, raw_get, validate_pit,
 };
 pub use config::{CliConfig, ConfigDoctor, ConfigPaths, resolve_paths, resolve_paths_from_env};
 pub use contacts::{

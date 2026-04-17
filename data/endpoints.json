@@ -265,6 +265,38 @@
       "response_schema": "AppointmentCreateResult"
     },
     {
+      "endpoint_key": "appointments.update",
+      "surface": "services",
+      "method": "PUT",
+      "path_template": "/calendars/events/appointments/{event_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["appointments.update"],
+      "response_schema": "AppointmentWriteResult"
+    },
+    {
+      "endpoint_key": "appointments.delete",
+      "surface": "services",
+      "method": "DELETE",
+      "path_template": "/calendars/events/appointments/{event_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["appointments.cancel"],
+      "response_schema": "AppointmentWriteResult"
+    },
+    {
       "endpoint_key": "users.list",
       "surface": "services",
       "method": "GET",

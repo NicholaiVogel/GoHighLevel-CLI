@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
+use reqwest::Method;
 use reqwest::blocking::Client;
 use reqwest::header::{
     ACCEPT, AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, USER_AGENT,
@@ -51,6 +52,23 @@ pub struct RawPostJsonRequest {
     pub path: String,
     pub auth_class: AuthClass,
     pub body: Value,
+    pub include_body: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RawPutJsonRequest {
+    pub surface: Surface,
+    pub path: String,
+    pub auth_class: AuthClass,
+    pub body: Value,
+    pub include_body: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RawDeleteRequest {
+    pub surface: Surface,
+    pub path: String,
+    pub auth_class: AuthClass,
     pub include_body: bool,
 }
 
@@ -105,6 +123,9 @@ pub struct RawPostJsonResponse {
     pub body_text: Option<String>,
 }
 
+pub type RawPutJsonResponse = RawPostJsonResponse;
+pub type RawDeleteResponse = RawGetResponse;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PitValidationResult {
     pub profile: String,
@@ -140,6 +161,32 @@ pub fn post_json(
     let token = pit_token_for_profile(paths, profile)?;
     let config = HttpClientConfig::default();
     execute_post_json(profile, &token, request, &config)
+}
+
+pub fn put_json(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    request: RawPutJsonRequest,
+) -> Result<RawPutJsonResponse> {
+    let profiles = load_profiles(paths)?;
+    let selected = profiles.selected_name(profile_name).to_owned();
+    let profile = profiles.get_required(&selected)?;
+    let token = pit_token_for_profile(paths, profile)?;
+    let config = HttpClientConfig::default();
+    execute_put_json(profile, &token, request, &config)
+}
+
+pub fn delete(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    request: RawDeleteRequest,
+) -> Result<RawDeleteResponse> {
+    let profiles = load_profiles(paths)?;
+    let selected = profiles.selected_name(profile_name).to_owned();
+    let profile = profiles.get_required(&selected)?;
+    let token = pit_token_for_profile(paths, profile)?;
+    let config = HttpClientConfig::default();
+    execute_delete(profile, &token, request, &config)
 }
 
 pub fn validate_pit(
@@ -252,7 +299,7 @@ fn execute_post_json(
             message: source.to_string(),
         })?;
     let response = client
-        .post(url.clone())
+        .request(Method::POST, url.clone())
         .headers(headers)
         .json(&request.body)
         .send()
@@ -265,6 +312,85 @@ fn execute_post_json(
 
     Ok(RawPostJsonResponse {
         method: "POST".to_owned(),
+        surface: request.surface.as_str().to_owned(),
+        url: redacted_url(&url),
+        auth_class: "pit".to_owned(),
+        status: status.as_u16(),
+        success: status.is_success(),
+        headers,
+        body_included: request.include_body,
+        body_json,
+        body_text,
+    })
+}
+
+fn execute_put_json(
+    profile: &Profile,
+    token: &str,
+    request: RawPutJsonRequest,
+    config: &HttpClientConfig,
+) -> Result<RawPutJsonResponse> {
+    let url = build_url(request.surface.base_url(profile), &request.path)?;
+    let headers = pit_headers(token, config)?;
+    let client = Client::builder()
+        .timeout(Duration::from_secs(config.timeout_seconds))
+        .build()
+        .map_err(|source| GhlError::Network {
+            message: source.to_string(),
+        })?;
+    let response = client
+        .request(Method::PUT, url.clone())
+        .headers(headers)
+        .json(&request.body)
+        .send()
+        .map_err(|source| GhlError::Network {
+            message: source.to_string(),
+        })?;
+    let status = response.status();
+    let headers = redact_headers(response.headers());
+    let (body_json, body_text) = parse_body(response, request.include_body)?;
+
+    Ok(RawPutJsonResponse {
+        method: "PUT".to_owned(),
+        surface: request.surface.as_str().to_owned(),
+        url: redacted_url(&url),
+        auth_class: "pit".to_owned(),
+        status: status.as_u16(),
+        success: status.is_success(),
+        headers,
+        body_included: request.include_body,
+        body_json,
+        body_text,
+    })
+}
+
+fn execute_delete(
+    profile: &Profile,
+    token: &str,
+    request: RawDeleteRequest,
+    config: &HttpClientConfig,
+) -> Result<RawDeleteResponse> {
+    let url = build_url(request.surface.base_url(profile), &request.path)?;
+    let headers = pit_headers(token, config)?;
+    let client = Client::builder()
+        .timeout(Duration::from_secs(config.timeout_seconds))
+        .build()
+        .map_err(|source| GhlError::Network {
+            message: source.to_string(),
+        })?;
+    let response = client
+        .request(Method::DELETE, url.clone())
+        .headers(headers)
+        .send()
+        .map_err(|source| GhlError::Network {
+            message: source.to_string(),
+        })?;
+    let status = response.status();
+    let headers = redact_headers(response.headers());
+    let (body_json, body_text) = parse_body(response, request.include_body)?;
+
+    Ok(RawDeleteResponse {
+        method: "DELETE".to_owned(),
         surface: request.surface.as_str().to_owned(),
         url: redacted_url(&url),
         auth_class: "pit".to_owned(),

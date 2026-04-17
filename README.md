@@ -91,7 +91,7 @@ It gives you:
 | Pipelines | List pipelines; get one pipeline by id from the location pipeline list |
 | Opportunities | Search by contact/pipeline/stage/status; get one opportunity by id |
 | Calendars | List calendars, get one calendar, summarize events, and fetch free slots |
-| Appointments | Guarded appointment create with dry-run, audit, idempotency, policy, and free-slot preflight |
+| Appointments | Guarded appointment create/update/cancel with dry-run, audit, idempotency, policy, and confirmation gates |
 | Users and teams | Summary-only team-member list, get one user, and search by query or exact email |
 | Smoke | Read-only `smoke run` with status/count output and no customer data |
 | Diagnostics | Local/API doctor reports, capability checks, and redacted support bundles |
@@ -268,6 +268,8 @@ ghl calendars events [--calendar <calendar-id>] [--date <date>] [--from <datetim
 ghl calendars free-slots --calendar <calendar-id> --date <date> [--timezone <timezone>]
 
 ghl appointments create --calendar <calendar-id> --contact <contact-id> --starts-at <datetime> --ends-at <datetime> [--dry-run=local] [--idempotency-key <key>]
+ghl appointments update <appointment-id> --title "Updated title" [--dry-run=local] [--idempotency-key <key>]
+ghl appointments cancel <appointment-id> [--dry-run=local] [--idempotency-key <key>]
 
 ghl users list [--skip <n>] [--limit <n>]
 ghl users get <user-id>
@@ -388,7 +390,7 @@ Implemented now:
 - Typed `conversations search`, `conversations get`, and `conversations messages`.
 - Typed `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
 - Typed `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
-- Guarded `appointments create` with dry-run audit, real-write confirmation, policy blocking, idempotency, and free-slot preflight.
+- Guarded `appointments create`, `appointments update`, and `appointments cancel` with dry-run audit, real-write confirmation, policy blocking, and idempotency. Create also performs a free-slot preflight unless explicitly skipped.
 - Typed `users list`, `users get`, `users search`, and `teams list`, with user list pagination applied client-side because the live endpoint only accepts `locationId`.
 - Read-only `smoke run` for safe real-account validation.
 - Local/API `doctor`, endpoint diagnostics, capability checks, and redacted JSON support bundles.
@@ -402,7 +404,7 @@ Implemented now:
 
 Current focus:
 
-- appointment update/cancel dry-runs and guarded real writes
+- appointment notes and broader guarded write coverage
 - stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend

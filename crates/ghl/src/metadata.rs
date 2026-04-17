@@ -437,6 +437,22 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             &["appointments.create", "calendars.free_slots"],
         ),
         remote_pit(
+            "appointments.update",
+            "appointments update <appointment-id> [--title <text>] [--status <status>] [--starts-at <datetime>] [--ends-at <datetime>]",
+            "Update an appointment through a guarded write path with dry-run, audit, idempotency, policy, and confirmation checks.",
+            "AppointmentWriteResult|AppointmentUpdateDryRun",
+            "2",
+            &["appointments.update"],
+        ),
+        remote_pit(
+            "appointments.cancel",
+            "appointments cancel <appointment-id>",
+            "Cancel/delete an appointment through a guarded write path with dry-run, audit, idempotency, policy, and confirmation checks.",
+            "AppointmentWriteResult|AppointmentCancelDryRun",
+            "2",
+            &["appointments.delete"],
+        ),
+        remote_pit(
             "users.list",
             "users list [--skip <n>] [--limit <n>]",
             "List user ids and counts for team members in the resolved location without printing user bodies.",
@@ -587,7 +603,7 @@ fn remote_pit(
 fn policy_flags_for(command_key: &str) -> Vec<String> {
     match command_key {
         "profiles.policy.reset" | "idempotency.clear" => vec!["confirmation_required".to_owned()],
-        "appointments.create" => vec![
+        "appointments.create" | "appointments.update" | "appointments.cancel" => vec![
             "allow_destructive".to_owned(),
             "confirmation_required".to_owned(),
             "idempotency_key_required".to_owned(),
@@ -639,6 +655,8 @@ mod tests {
         assert!(keys.contains(&"calendars.events"));
         assert!(keys.contains(&"calendars.free_slots"));
         assert!(keys.contains(&"appointments.create"));
+        assert!(keys.contains(&"appointments.update"));
+        assert!(keys.contains(&"appointments.cancel"));
         assert!(keys.contains(&"users.list"));
         assert!(keys.contains(&"users.get"));
         assert!(keys.contains(&"users.search"));
@@ -676,6 +694,8 @@ mod tests {
                 | "calendars.events"
                 | "calendars.free_slots"
                 | "appointments.create"
+                | "appointments.update"
+                | "appointments.cancel"
                 | "users.list"
                 | "users.get"
                 | "users.search"

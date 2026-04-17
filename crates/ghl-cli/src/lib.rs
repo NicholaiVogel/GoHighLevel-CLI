@@ -5,12 +5,13 @@ use std::io::{self, Read};
 
 use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
-    AppointmentCreateArgs, AppointmentsCommand, AuditCommand, AuditExportArgs, AuditListArgs,
-    AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand, CapabilitiesCommand, Cli,
-    Command, CommandsCommand, ConfigCommand, ContactsCommand, ConversationsCommand, DoctorCommand,
-    EndpointsCommand, ErrorsCommand, IdempotencyCommand, LocationsCommand, OpportunitiesCommand,
-    PipelinesCommand, ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand,
-    SmokeCommand, SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
+    AppointmentCancelArgs, AppointmentCreateArgs, AppointmentUpdateArgs, AppointmentsCommand,
+    AuditCommand, AuditExportArgs, AuditListArgs, AuthCommand, AuthPitAddArgs, AuthPitCommand,
+    CalendarsCommand, CapabilitiesCommand, Cli, Command, CommandsCommand, ConfigCommand,
+    ContactsCommand, ConversationsCommand, DoctorCommand, EndpointsCommand, ErrorsCommand,
+    IdempotencyCommand, LocationsCommand, OpportunitiesCommand, PipelinesCommand,
+    ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand,
+    SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -874,6 +875,67 @@ fn execute(cli: Cli) -> Result<()> {
             }
         }
 
+        Command::Appointments(AppointmentsCommand::Update(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = appointment_update_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::update_appointment_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::update_appointment(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Appointments(AppointmentsCommand::Cancel(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = appointment_cancel_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::cancel_appointment_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::cancel_appointment(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+
         Command::Users(UsersCommand::List(args)) => {
             let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
             let options = user_list_options(args);
@@ -1135,6 +1197,35 @@ fn appointment_create_options(args: AppointmentCreateArgs) -> ghl::AppointmentCr
         to_notify: args.notify,
         idempotency_key: args.idempotency_key,
         skip_free_slot_check: args.skip_free_slot_check,
+    }
+}
+
+fn appointment_update_options(args: AppointmentUpdateArgs) -> ghl::AppointmentUpdateOptions {
+    ghl::AppointmentUpdateOptions {
+        appointment_id: args.appointment_id,
+        title: args.title,
+        appointment_status: args.status.map(Into::into),
+        assigned_user_id: args.assigned_user,
+        address: args.address,
+        starts_at: args.starts_at,
+        ends_at: args.ends_at,
+        meeting_location_type: args.meeting_location_type,
+        to_notify: if args.notify {
+            Some(true)
+        } else if args.no_notify {
+            Some(false)
+        } else {
+            None
+        },
+        ignore_free_slot_validation: args.ignore_free_slot_validation,
+        idempotency_key: args.idempotency_key,
+    }
+}
+
+fn appointment_cancel_options(args: AppointmentCancelArgs) -> ghl::AppointmentCancelOptions {
+    ghl::AppointmentCancelOptions {
+        appointment_id: args.appointment_id,
+        idempotency_key: args.idempotency_key,
     }
 }
 

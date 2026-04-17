@@ -5,7 +5,9 @@ use serde_json::{Map, Value, json};
 use crate::audit::{
     AuditEntryInput, AuditResource, AuditResultSummary, AuditUpstreamSummary, append_audit_entry,
 };
-use crate::client::{AuthClass, RawPostJsonRequest, post_json};
+use crate::client::{
+    AuthClass, RawDeleteRequest, RawPostJsonRequest, RawPutJsonRequest, delete, post_json, put_json,
+};
 use crate::context::{ResolvedContext, resolve_context, resolve_context_for_dry_run};
 use crate::errors::{GhlError, Result};
 use crate::idempotency::{
@@ -35,6 +37,27 @@ pub struct AppointmentCreateOptions {
     pub skip_free_slot_check: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AppointmentUpdateOptions {
+    pub appointment_id: String,
+    pub title: Option<String>,
+    pub appointment_status: Option<AppointmentUpdateStatus>,
+    pub assigned_user_id: Option<String>,
+    pub address: Option<String>,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub meeting_location_type: Option<String>,
+    pub to_notify: Option<bool>,
+    pub ignore_free_slot_validation: bool,
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AppointmentCancelOptions {
+    pub appointment_id: String,
+    pub idempotency_key: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AppointmentStatus {
@@ -47,6 +70,30 @@ impl AppointmentStatus {
         match self {
             Self::New => "new",
             Self::Confirmed => "confirmed",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AppointmentUpdateStatus {
+    New,
+    Confirmed,
+    Cancelled,
+    Showed,
+    NoShow,
+    Invalid,
+}
+
+impl AppointmentUpdateStatus {
+    pub fn as_api_value(self) -> &'static str {
+        match self {
+            Self::New => "new",
+            Self::Confirmed => "confirmed",
+            Self::Cancelled => "cancelled",
+            Self::Showed => "showed",
+            Self::NoShow => "noshow",
+            Self::Invalid => "invalid",
         }
     }
 }
@@ -86,6 +133,59 @@ pub struct AppointmentCreateResult {
     pub idempotency_state: Option<String>,
     pub request_hash: String,
     pub preflight: AppointmentPreflightSummary,
+    pub audit_entry_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body_json: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body_text: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AppointmentUpdateDryRun {
+    pub method: &'static str,
+    pub surface: &'static str,
+    pub path: String,
+    pub context: ResolvedContext,
+    pub appointment_id: String,
+    pub request_body_json: Value,
+    pub request_hash: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub idempotency_key: Option<String>,
+    pub audit_entry_id: String,
+    pub auth_class: &'static str,
+    pub network: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AppointmentCancelDryRun {
+    pub method: &'static str,
+    pub surface: &'static str,
+    pub path: String,
+    pub context: ResolvedContext,
+    pub appointment_id: String,
+    pub request_hash: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub idempotency_key: Option<String>,
+    pub audit_entry_id: String,
+    pub auth_class: &'static str,
+    pub network: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AppointmentWriteResult {
+    pub profile: String,
+    pub context: ResolvedContext,
+    pub endpoint: String,
+    pub url: String,
+    pub status: u16,
+    pub success: bool,
+    pub replayed: bool,
+    pub appointment_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub idempotency_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub idempotency_state: Option<String>,
+    pub request_hash: String,
     pub audit_entry_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub body_json: Option<Value>,
@@ -369,12 +469,568 @@ pub fn create_appointment(
     })
 }
 
+pub fn update_appointment_dry_run(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    options: AppointmentUpdateOptions,
+) -> Result<AppointmentUpdateDryRun> {
+    validate_update_options(&options)?;
+    let context = resolve_context_for_dry_run(paths, profile_name, location_override, None)?;
+    let endpoint = appointment_id_endpoint(&options.appointment_id);
+    let request_body_json = appointment_update_body(&options);
+    let request_hash = stable_request_hash(&json!({
+        "method": "PUT",
+        "path": endpoint,
+        "body": request_body_json,
+    }))?;
+    let audit = append_audit_entry(
+        paths,
+        AuditEntryInput {
+            profile: Some(context.profile.clone()),
+            company_id: context.company_id.as_ref().map(|value| value.value.clone()),
+            location_id: context
+                .location_id
+                .as_ref()
+                .map(|value| value.value.clone()),
+            command: "appointments.update".to_owned(),
+            action_class: "sensitive_dry_run".to_owned(),
+            dry_run: true,
+            policy_flags: vec![
+                "allow_destructive".to_owned(),
+                "confirmation_required".to_owned(),
+            ],
+            resource: Some(AuditResource {
+                resource_type: "appointment".to_owned(),
+                id: Some(options.appointment_id.clone()),
+            }),
+            request_summary: json!({
+                "endpoint": endpoint,
+                "request_body": request_body_json,
+                "request_hash": request_hash,
+                "preflight": {
+                    "server_side_validation": "planned",
+                    "local_free_slot_check": if options.ignore_free_slot_validation { "skipped" } else { "not_available_for_update_endpoint" }
+                }
+            }),
+            upstream: None,
+            result: AuditResultSummary {
+                status: "dry_run".to_owned(),
+                resource_id: Some(options.appointment_id.clone()),
+                message: Some(
+                    "appointment update dry-run; no network mutation performed".to_owned(),
+                ),
+            },
+            error: None,
+        },
+    )?;
+
+    Ok(AppointmentUpdateDryRun {
+        method: "PUT",
+        surface: "services",
+        path: endpoint,
+        context,
+        appointment_id: options.appointment_id,
+        request_body_json: redact_json(&request_body_json),
+        request_hash,
+        idempotency_key: options.idempotency_key,
+        audit_entry_id: audit.id,
+        auth_class: "pit",
+        network: false,
+    })
+}
+
+pub fn update_appointment(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    options: AppointmentUpdateOptions,
+) -> Result<AppointmentWriteResult> {
+    validate_update_options(&options)?;
+    let context = resolve_context(paths, profile_name, location_override, None)?;
+    ensure_write_allowed(paths, &context.profile)?;
+    let endpoint = appointment_id_endpoint(&options.appointment_id);
+    let request_body = appointment_update_body(&options);
+    let request_hash = stable_request_hash(&json!({
+        "method": "PUT",
+        "path": endpoint,
+        "body": request_body,
+    }))?;
+    let idempotency_key = options
+        .idempotency_key
+        .clone()
+        .ok_or_else(|| GhlError::Validation {
+            message: "real appointment update requires --idempotency-key <key>".to_owned(),
+        })?;
+
+    let idempotency = check_idempotency_key(
+        paths,
+        &context.profile,
+        context
+            .location_id
+            .as_ref()
+            .map(|value| value.value.as_str()),
+        "appointments.update",
+        &idempotency_key,
+        &request_hash,
+    )?;
+    if idempotency.state == IdempotencyCheckState::Replay {
+        let existing = idempotency.existing.expect("existing replay record");
+        let audit = append_audit_entry(
+            paths,
+            AuditEntryInput {
+                profile: Some(context.profile.clone()),
+                company_id: context.company_id.as_ref().map(|value| value.value.clone()),
+                location_id: context
+                    .location_id
+                    .as_ref()
+                    .map(|value| value.value.clone()),
+                command: "appointments.update".to_owned(),
+                action_class: "idempotency_replay".to_owned(),
+                dry_run: false,
+                policy_flags: vec![
+                    "allow_destructive".to_owned(),
+                    "confirmation_required".to_owned(),
+                ],
+                resource: Some(AuditResource {
+                    resource_type: "appointment".to_owned(),
+                    id: existing.resource_id.clone(),
+                }),
+                request_summary: json!({
+                    "endpoint": endpoint,
+                    "idempotency_key": idempotency_key,
+                    "request_hash": request_hash,
+                }),
+                upstream: None,
+                result: AuditResultSummary {
+                    status: "replayed".to_owned(),
+                    resource_id: existing.resource_id.clone(),
+                    message: Some(
+                        "idempotency key matched a previous request; no network mutation performed"
+                            .to_owned(),
+                    ),
+                },
+                error: None,
+            },
+        )?;
+        return Ok(AppointmentWriteResult {
+            profile: context.profile.clone(),
+            context,
+            endpoint,
+            url: String::new(),
+            status: 200,
+            success: existing.status == IdempotencyStatus::Succeeded,
+            replayed: true,
+            appointment_id: existing
+                .resource_id
+                .unwrap_or_else(|| options.appointment_id.clone()),
+            idempotency_key: Some(idempotency_key),
+            idempotency_state: Some("replay".to_owned()),
+            request_hash,
+            audit_entry_id: audit.id,
+            body_json: None,
+            body_text: None,
+        });
+    }
+
+    record_idempotency_key(
+        paths,
+        IdempotencyPut {
+            key: idempotency_key.clone(),
+            profile: context.profile.clone(),
+            location_id: context
+                .location_id
+                .as_ref()
+                .map(|value| value.value.clone()),
+            command: "appointments.update".to_owned(),
+            request_hash: request_hash.clone(),
+            status: IdempotencyStatus::InProgress,
+            resource_id: Some(options.appointment_id.clone()),
+            audit_entry_id: None,
+        },
+    )?;
+
+    let response = put_json(
+        paths,
+        profile_name,
+        RawPutJsonRequest {
+            surface: Surface::Services,
+            path: endpoint.clone(),
+            auth_class: AuthClass::Pit,
+            body: request_body.clone(),
+            include_body: true,
+        },
+    )?;
+    let result_status = if response.success {
+        "success"
+    } else {
+        "failed"
+    }
+    .to_owned();
+    let idempotency_status = if response.success {
+        IdempotencyStatus::Succeeded
+    } else {
+        IdempotencyStatus::Failed
+    };
+    let audit = append_audit_entry(
+        paths,
+        AuditEntryInput {
+            profile: Some(context.profile.clone()),
+            company_id: context.company_id.as_ref().map(|value| value.value.clone()),
+            location_id: context
+                .location_id
+                .as_ref()
+                .map(|value| value.value.clone()),
+            command: "appointments.update".to_owned(),
+            action_class: "write".to_owned(),
+            dry_run: false,
+            policy_flags: vec![
+                "allow_destructive".to_owned(),
+                "confirmation_required".to_owned(),
+            ],
+            resource: Some(AuditResource {
+                resource_type: "appointment".to_owned(),
+                id: Some(options.appointment_id.clone()),
+            }),
+            request_summary: json!({
+                "endpoint": endpoint,
+                "request_body": request_body,
+                "request_hash": request_hash,
+                "idempotency_key": idempotency_key,
+            }),
+            upstream: Some(AuditUpstreamSummary {
+                request_id: response.headers.get("x-request-id").cloned(),
+                status_code: Some(response.status),
+                endpoint_key: Some("appointments.update".to_owned()),
+            }),
+            result: AuditResultSummary {
+                status: result_status,
+                resource_id: Some(options.appointment_id.clone()),
+                message: None,
+            },
+            error: if response.success {
+                None
+            } else {
+                response
+                    .body_text
+                    .clone()
+                    .or_else(|| response.body_json.as_ref().map(Value::to_string))
+            },
+        },
+    )?;
+    record_idempotency_key(
+        paths,
+        IdempotencyPut {
+            key: idempotency_key.clone(),
+            profile: context.profile.clone(),
+            location_id: context
+                .location_id
+                .as_ref()
+                .map(|value| value.value.clone()),
+            command: "appointments.update".to_owned(),
+            request_hash: request_hash.clone(),
+            status: idempotency_status,
+            resource_id: Some(options.appointment_id.clone()),
+            audit_entry_id: Some(audit.id.clone()),
+        },
+    )?;
+
+    Ok(AppointmentWriteResult {
+        profile: context.profile.clone(),
+        context,
+        endpoint,
+        url: response.url,
+        status: response.status,
+        success: response.success,
+        replayed: false,
+        appointment_id: options.appointment_id,
+        idempotency_key: Some(idempotency_key),
+        idempotency_state: Some("recorded".to_owned()),
+        request_hash,
+        audit_entry_id: audit.id,
+        body_json: response.body_json,
+        body_text: response.body_text,
+    })
+}
+
+pub fn cancel_appointment_dry_run(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    options: AppointmentCancelOptions,
+) -> Result<AppointmentCancelDryRun> {
+    validate_cancel_options(&options)?;
+    let context = resolve_context_for_dry_run(paths, profile_name, location_override, None)?;
+    let endpoint = appointment_id_endpoint(&options.appointment_id);
+    let request_hash = stable_request_hash(&json!({
+        "method": "DELETE",
+        "path": endpoint,
+    }))?;
+    let audit = append_audit_entry(
+        paths,
+        AuditEntryInput {
+            profile: Some(context.profile.clone()),
+            company_id: context.company_id.as_ref().map(|value| value.value.clone()),
+            location_id: context
+                .location_id
+                .as_ref()
+                .map(|value| value.value.clone()),
+            command: "appointments.cancel".to_owned(),
+            action_class: "sensitive_dry_run".to_owned(),
+            dry_run: true,
+            policy_flags: vec![
+                "allow_destructive".to_owned(),
+                "confirmation_required".to_owned(),
+            ],
+            resource: Some(AuditResource {
+                resource_type: "appointment".to_owned(),
+                id: Some(options.appointment_id.clone()),
+            }),
+            request_summary: json!({
+                "endpoint": endpoint,
+                "request_hash": request_hash,
+            }),
+            upstream: None,
+            result: AuditResultSummary {
+                status: "dry_run".to_owned(),
+                resource_id: Some(options.appointment_id.clone()),
+                message: Some(
+                    "appointment cancel dry-run; no network mutation performed".to_owned(),
+                ),
+            },
+            error: None,
+        },
+    )?;
+
+    Ok(AppointmentCancelDryRun {
+        method: "DELETE",
+        surface: "services",
+        path: endpoint,
+        context,
+        appointment_id: options.appointment_id,
+        request_hash,
+        idempotency_key: options.idempotency_key,
+        audit_entry_id: audit.id,
+        auth_class: "pit",
+        network: false,
+    })
+}
+
+pub fn cancel_appointment(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    options: AppointmentCancelOptions,
+) -> Result<AppointmentWriteResult> {
+    validate_cancel_options(&options)?;
+    let context = resolve_context(paths, profile_name, location_override, None)?;
+    ensure_write_allowed(paths, &context.profile)?;
+    let endpoint = appointment_id_endpoint(&options.appointment_id);
+    let request_hash = stable_request_hash(&json!({
+        "method": "DELETE",
+        "path": endpoint,
+    }))?;
+    let idempotency_key = options
+        .idempotency_key
+        .clone()
+        .ok_or_else(|| GhlError::Validation {
+            message: "real appointment cancel requires --idempotency-key <key>".to_owned(),
+        })?;
+
+    let idempotency = check_idempotency_key(
+        paths,
+        &context.profile,
+        context
+            .location_id
+            .as_ref()
+            .map(|value| value.value.as_str()),
+        "appointments.cancel",
+        &idempotency_key,
+        &request_hash,
+    )?;
+    if idempotency.state == IdempotencyCheckState::Replay {
+        let existing = idempotency.existing.expect("existing replay record");
+        let audit = append_audit_entry(
+            paths,
+            AuditEntryInput {
+                profile: Some(context.profile.clone()),
+                company_id: context.company_id.as_ref().map(|value| value.value.clone()),
+                location_id: context
+                    .location_id
+                    .as_ref()
+                    .map(|value| value.value.clone()),
+                command: "appointments.cancel".to_owned(),
+                action_class: "idempotency_replay".to_owned(),
+                dry_run: false,
+                policy_flags: vec![
+                    "allow_destructive".to_owned(),
+                    "confirmation_required".to_owned(),
+                ],
+                resource: Some(AuditResource {
+                    resource_type: "appointment".to_owned(),
+                    id: existing.resource_id.clone(),
+                }),
+                request_summary: json!({
+                    "endpoint": endpoint,
+                    "idempotency_key": idempotency_key,
+                    "request_hash": request_hash,
+                }),
+                upstream: None,
+                result: AuditResultSummary {
+                    status: "replayed".to_owned(),
+                    resource_id: existing.resource_id.clone(),
+                    message: Some(
+                        "idempotency key matched a previous request; no network mutation performed"
+                            .to_owned(),
+                    ),
+                },
+                error: None,
+            },
+        )?;
+        return Ok(AppointmentWriteResult {
+            profile: context.profile.clone(),
+            context,
+            endpoint,
+            url: String::new(),
+            status: 200,
+            success: existing.status == IdempotencyStatus::Succeeded,
+            replayed: true,
+            appointment_id: existing
+                .resource_id
+                .unwrap_or_else(|| options.appointment_id.clone()),
+            idempotency_key: Some(idempotency_key),
+            idempotency_state: Some("replay".to_owned()),
+            request_hash,
+            audit_entry_id: audit.id,
+            body_json: None,
+            body_text: None,
+        });
+    }
+
+    record_idempotency_key(
+        paths,
+        IdempotencyPut {
+            key: idempotency_key.clone(),
+            profile: context.profile.clone(),
+            location_id: context
+                .location_id
+                .as_ref()
+                .map(|value| value.value.clone()),
+            command: "appointments.cancel".to_owned(),
+            request_hash: request_hash.clone(),
+            status: IdempotencyStatus::InProgress,
+            resource_id: Some(options.appointment_id.clone()),
+            audit_entry_id: None,
+        },
+    )?;
+
+    let response = delete(
+        paths,
+        profile_name,
+        RawDeleteRequest {
+            surface: Surface::Services,
+            path: endpoint.clone(),
+            auth_class: AuthClass::Pit,
+            include_body: true,
+        },
+    )?;
+    let result_status = if response.success {
+        "success"
+    } else {
+        "failed"
+    }
+    .to_owned();
+    let idempotency_status = if response.success {
+        IdempotencyStatus::Succeeded
+    } else {
+        IdempotencyStatus::Failed
+    };
+    let audit = append_audit_entry(
+        paths,
+        AuditEntryInput {
+            profile: Some(context.profile.clone()),
+            company_id: context.company_id.as_ref().map(|value| value.value.clone()),
+            location_id: context
+                .location_id
+                .as_ref()
+                .map(|value| value.value.clone()),
+            command: "appointments.cancel".to_owned(),
+            action_class: "write".to_owned(),
+            dry_run: false,
+            policy_flags: vec![
+                "allow_destructive".to_owned(),
+                "confirmation_required".to_owned(),
+            ],
+            resource: Some(AuditResource {
+                resource_type: "appointment".to_owned(),
+                id: Some(options.appointment_id.clone()),
+            }),
+            request_summary: json!({
+                "endpoint": endpoint,
+                "request_hash": request_hash,
+                "idempotency_key": idempotency_key,
+            }),
+            upstream: Some(AuditUpstreamSummary {
+                request_id: response.headers.get("x-request-id").cloned(),
+                status_code: Some(response.status),
+                endpoint_key: Some("appointments.delete".to_owned()),
+            }),
+            result: AuditResultSummary {
+                status: result_status,
+                resource_id: Some(options.appointment_id.clone()),
+                message: None,
+            },
+            error: if response.success {
+                None
+            } else {
+                response
+                    .body_text
+                    .clone()
+                    .or_else(|| response.body_json.as_ref().map(Value::to_string))
+            },
+        },
+    )?;
+    record_idempotency_key(
+        paths,
+        IdempotencyPut {
+            key: idempotency_key.clone(),
+            profile: context.profile.clone(),
+            location_id: context
+                .location_id
+                .as_ref()
+                .map(|value| value.value.clone()),
+            command: "appointments.cancel".to_owned(),
+            request_hash: request_hash.clone(),
+            status: idempotency_status,
+            resource_id: Some(options.appointment_id.clone()),
+            audit_entry_id: Some(audit.id.clone()),
+        },
+    )?;
+
+    Ok(AppointmentWriteResult {
+        profile: context.profile.clone(),
+        context,
+        endpoint,
+        url: response.url,
+        status: response.status,
+        success: response.success,
+        replayed: false,
+        appointment_id: options.appointment_id,
+        idempotency_key: Some(idempotency_key),
+        idempotency_state: Some("recorded".to_owned()),
+        request_hash,
+        audit_entry_id: audit.id,
+        body_json: response.body_json,
+        body_text: response.body_text,
+    })
+}
+
 fn ensure_write_allowed(paths: &crate::ConfigPaths, profile_name: &str) -> Result<()> {
     let profiles = load_profiles(paths)?;
     let profile = profiles.get_required(profile_name)?;
     if !profile.policy.allow_destructive {
         return Err(GhlError::PolicyDenied {
-            message: "profile policy blocks appointment writes; enable allow_destructive for this profile before real create".to_owned(),
+            message: "profile policy blocks appointment writes; enable allow_destructive for this profile before real appointment mutations".to_owned(),
         });
     }
     Ok(())
@@ -437,6 +1093,41 @@ fn insert_optional(body: &mut Map<String, Value>, key: &str, value: Option<&str>
     }
 }
 
+fn appointment_id_endpoint(appointment_id: &str) -> String {
+    format!("/calendars/events/appointments/{}", appointment_id.trim())
+}
+
+fn appointment_update_body(options: &AppointmentUpdateOptions) -> Value {
+    let mut body = Map::new();
+    insert_optional(&mut body, "title", options.title.as_deref());
+    if let Some(status) = options.appointment_status {
+        body.insert(
+            "appointmentStatus".to_owned(),
+            Value::String(status.as_api_value().to_owned()),
+        );
+    }
+    insert_optional(
+        &mut body,
+        "assignedUserId",
+        options.assigned_user_id.as_deref(),
+    );
+    insert_optional(&mut body, "address", options.address.as_deref());
+    insert_optional(&mut body, "startTime", options.starts_at.as_deref());
+    insert_optional(&mut body, "endTime", options.ends_at.as_deref());
+    insert_optional(
+        &mut body,
+        "meetingLocationType",
+        options.meeting_location_type.as_deref(),
+    );
+    if let Some(to_notify) = options.to_notify {
+        body.insert("toNotify".to_owned(), Value::Bool(to_notify));
+    }
+    if options.ignore_free_slot_validation {
+        body.insert("ignoreFreeSlotValidation".to_owned(), Value::Bool(true));
+    }
+    Value::Object(body)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ParsedAppointmentRange {
     starts_at: DateTime<FixedOffset>,
@@ -468,6 +1159,51 @@ fn validate_create_options(options: &AppointmentCreateOptions) -> Result<ParsedA
         starts_at_ms: millis_to_u64(starts_at.timestamp_millis(), "appointment start")?,
         ends_at_ms: millis_to_u64(ends_at.timestamp_millis(), "appointment end")?,
     })
+}
+
+fn validate_update_options(options: &AppointmentUpdateOptions) -> Result<()> {
+    validate_path_segment(&options.appointment_id, "appointment id")?;
+    validate_optional_text(options.title.as_deref(), "appointment title")?;
+    validate_optional_text(options.assigned_user_id.as_deref(), "assigned user id")?;
+    validate_optional_text(options.address.as_deref(), "appointment address")?;
+    validate_optional_text(options.starts_at.as_deref(), "appointment start")?;
+    validate_optional_text(options.ends_at.as_deref(), "appointment end")?;
+    validate_optional_text(
+        options.meeting_location_type.as_deref(),
+        "meeting location type",
+    )?;
+    validate_optional_text(options.idempotency_key.as_deref(), "idempotency key")?;
+    let updates = appointment_update_body(options);
+    let update_count = updates.as_object().map(Map::len).unwrap_or(0);
+    if update_count == 0 {
+        return Err(GhlError::Validation {
+            message: "appointment update requires at least one field to change".to_owned(),
+        });
+    }
+    let starts_at = options
+        .starts_at
+        .as_deref()
+        .map(|value| parse_datetime(value, "--starts-at"))
+        .transpose()?;
+    let ends_at = options
+        .ends_at
+        .as_deref()
+        .map(|value| parse_datetime(value, "--ends-at"))
+        .transpose()?;
+    if let (Some(starts_at), Some(ends_at)) = (starts_at, ends_at)
+        && ends_at <= starts_at
+    {
+        return Err(GhlError::Validation {
+            message: "appointment --ends-at must be after --starts-at".to_owned(),
+        });
+    }
+    Ok(())
+}
+
+fn validate_cancel_options(options: &AppointmentCancelOptions) -> Result<()> {
+    validate_path_segment(&options.appointment_id, "appointment id")?;
+    validate_optional_text(options.idempotency_key.as_deref(), "idempotency key")?;
+    Ok(())
 }
 
 fn parse_datetime(value: &str, label: &str) -> Result<DateTime<FixedOffset>> {
@@ -658,7 +1394,7 @@ fn extract_appointment_id(body: Option<&Value>) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use httpmock::Method::{GET, POST};
+    use httpmock::Method::{DELETE, GET, POST, PUT};
     use httpmock::MockServer;
     use serde_json::json;
 
@@ -848,6 +1584,143 @@ mod tests {
         assert_eq!(error.code(), "policy_denied");
     }
 
+    #[test]
+    fn appointment_update_dry_run_writes_redacted_audit_entry() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let paths = resolve_paths(Some(temp.path()));
+
+        let result = update_appointment_dry_run(
+            &paths,
+            None,
+            Some("loc_123"),
+            update_options(Some("update-appt-1")),
+        )
+        .expect("dry run");
+
+        assert_eq!(result.method, "PUT");
+        assert_eq!(result.path, "/calendars/events/appointments/appt_123");
+        assert_eq!(result.request_body_json["appointmentStatus"], "confirmed");
+        assert_eq!(result.request_body_json["toNotify"], false);
+        assert!(result.audit_entry_id.starts_with("audit-"));
+        let audit = std::fs::read_to_string(crate::audit_journal_path(&paths)).expect("audit");
+        assert!(audit.contains("appointments.update"));
+    }
+
+    #[test]
+    fn appointment_update_puts_after_policy_and_idempotency() {
+        let server = MockServer::start();
+        let update = server.mock(|when, then| {
+            when.method(PUT)
+                .path("/calendars/events/appointments/appt_123")
+                .header("authorization", "Bearer pit-secret")
+                .json_body(json!({
+                    "title": "Updated Discovery Call",
+                    "appointmentStatus": "confirmed",
+                    "assignedUserId": "user_123",
+                    "address": "Phone",
+                    "startTime": "2026-02-27T10:00:00-07:00",
+                    "endTime": "2026-02-27T10:30:00-07:00",
+                    "meetingLocationType": "phone",
+                    "toNotify": false
+                }));
+            then.status(200).json_body(json!({ "id": "appt_123" }));
+        });
+        let temp = tempfile::tempdir().expect("tempdir");
+        let paths = resolve_paths(Some(temp.path()));
+        add_pit(
+            &paths,
+            "default",
+            "pit-secret".to_owned(),
+            Some("loc_123".to_owned()),
+            None,
+            true,
+        )
+        .expect("pit");
+        let mut profiles = crate::profiles::load_profiles(&paths).expect("profiles");
+        let profile = profiles.profiles.get_mut("default").expect("profile");
+        profile.base_urls.services = server.base_url();
+        profile.policy.allow_destructive = true;
+        crate::profiles::save_profiles(&paths, &profiles).expect("save");
+
+        let result = update_appointment(
+            &paths,
+            Some("default"),
+            None,
+            update_options(Some("update-appt-1")),
+        )
+        .expect("update");
+
+        update.assert();
+        assert!(result.success);
+        assert_eq!(result.appointment_id, "appt_123");
+        assert!(result.audit_entry_id.starts_with("audit-"));
+        let idempotency = crate::list_idempotency_records(&paths).expect("idempotency");
+        assert_eq!(idempotency.count, 1);
+        assert_eq!(idempotency.records[0].command, "appointments.update");
+    }
+
+    #[test]
+    fn appointment_cancel_dry_run_writes_redacted_audit_entry() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let paths = resolve_paths(Some(temp.path()));
+
+        let result = cancel_appointment_dry_run(
+            &paths,
+            None,
+            Some("loc_123"),
+            cancel_options(Some("cancel-appt-1")),
+        )
+        .expect("dry run");
+
+        assert_eq!(result.method, "DELETE");
+        assert_eq!(result.path, "/calendars/events/appointments/appt_123");
+        assert!(result.audit_entry_id.starts_with("audit-"));
+        let audit = std::fs::read_to_string(crate::audit_journal_path(&paths)).expect("audit");
+        assert!(audit.contains("appointments.cancel"));
+    }
+
+    #[test]
+    fn appointment_cancel_deletes_after_policy_and_idempotency() {
+        let server = MockServer::start();
+        let cancel = server.mock(|when, then| {
+            when.method(DELETE)
+                .path("/calendars/events/appointments/appt_123")
+                .header("authorization", "Bearer pit-secret");
+            then.status(200).json_body(json!({ "succeeded": true }));
+        });
+        let temp = tempfile::tempdir().expect("tempdir");
+        let paths = resolve_paths(Some(temp.path()));
+        add_pit(
+            &paths,
+            "default",
+            "pit-secret".to_owned(),
+            Some("loc_123".to_owned()),
+            None,
+            true,
+        )
+        .expect("pit");
+        let mut profiles = crate::profiles::load_profiles(&paths).expect("profiles");
+        let profile = profiles.profiles.get_mut("default").expect("profile");
+        profile.base_urls.services = server.base_url();
+        profile.policy.allow_destructive = true;
+        crate::profiles::save_profiles(&paths, &profiles).expect("save");
+
+        let result = cancel_appointment(
+            &paths,
+            Some("default"),
+            None,
+            cancel_options(Some("cancel-appt-1")),
+        )
+        .expect("cancel");
+
+        cancel.assert();
+        assert!(result.success);
+        assert_eq!(result.appointment_id, "appt_123");
+        let idempotency = crate::list_idempotency_records(&paths).expect("idempotency");
+        assert_eq!(idempotency.count, 1);
+        assert_eq!(idempotency.records[0].command, "appointments.cancel");
+    }
+
     fn options(
         idempotency_key: Option<&str>,
         skip_free_slot_check: bool,
@@ -867,6 +1740,29 @@ mod tests {
             to_notify: false,
             idempotency_key: idempotency_key.map(str::to_owned),
             skip_free_slot_check,
+        }
+    }
+
+    fn update_options(idempotency_key: Option<&str>) -> AppointmentUpdateOptions {
+        AppointmentUpdateOptions {
+            appointment_id: "appt_123".to_owned(),
+            title: Some("Updated Discovery Call".to_owned()),
+            appointment_status: Some(AppointmentUpdateStatus::Confirmed),
+            assigned_user_id: Some("user_123".to_owned()),
+            address: Some("Phone".to_owned()),
+            starts_at: Some("2026-02-27T10:00:00-07:00".to_owned()),
+            ends_at: Some("2026-02-27T10:30:00-07:00".to_owned()),
+            meeting_location_type: Some("phone".to_owned()),
+            to_notify: Some(false),
+            ignore_free_slot_validation: false,
+            idempotency_key: idempotency_key.map(str::to_owned),
+        }
+    }
+
+    fn cancel_options(idempotency_key: Option<&str>) -> AppointmentCancelOptions {
+        AppointmentCancelOptions {
+            appointment_id: "appt_123".to_owned(),
+            idempotency_key: idempotency_key.map(str::to_owned),
         }
     }
 }

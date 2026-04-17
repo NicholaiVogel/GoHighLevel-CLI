@@ -714,6 +714,8 @@ pub struct CalendarFreeSlotsArgs {
 #[derive(Debug, Subcommand)]
 pub enum AppointmentsCommand {
     Create(AppointmentCreateArgs),
+    Update(AppointmentUpdateArgs),
+    Cancel(AppointmentCancelArgs),
 }
 
 #[derive(Debug, Args)]
@@ -772,6 +774,75 @@ impl From<AppointmentStatusArg> for ghl::AppointmentStatus {
         match value {
             AppointmentStatusArg::New => Self::New,
             AppointmentStatusArg::Confirmed => Self::Confirmed,
+        }
+    }
+}
+
+#[derive(Debug, Args)]
+pub struct AppointmentUpdateArgs {
+    pub appointment_id: String,
+
+    #[arg(long)]
+    pub title: Option<String>,
+
+    #[arg(long, value_enum)]
+    pub status: Option<AppointmentUpdateStatusArg>,
+
+    #[arg(long)]
+    pub assigned_user: Option<String>,
+
+    #[arg(long)]
+    pub address: Option<String>,
+
+    #[arg(long)]
+    pub starts_at: Option<String>,
+
+    #[arg(long)]
+    pub ends_at: Option<String>,
+
+    #[arg(long)]
+    pub meeting_location_type: Option<String>,
+
+    #[arg(long, default_value_t = false, conflicts_with = "no_notify")]
+    pub notify: bool,
+
+    #[arg(long = "no-notify", default_value_t = false)]
+    pub no_notify: bool,
+
+    #[arg(long, default_value_t = false)]
+    pub ignore_free_slot_validation: bool,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct AppointmentCancelArgs {
+    pub appointment_id: String,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+pub enum AppointmentUpdateStatusArg {
+    New,
+    Confirmed,
+    Cancelled,
+    Showed,
+    NoShow,
+    Invalid,
+}
+
+impl From<AppointmentUpdateStatusArg> for ghl::AppointmentUpdateStatus {
+    fn from(value: AppointmentUpdateStatusArg) -> Self {
+        match value {
+            AppointmentUpdateStatusArg::New => Self::New,
+            AppointmentUpdateStatusArg::Confirmed => Self::Confirmed,
+            AppointmentUpdateStatusArg::Cancelled => Self::Cancelled,
+            AppointmentUpdateStatusArg::Showed => Self::Showed,
+            AppointmentUpdateStatusArg::NoShow => Self::NoShow,
+            AppointmentUpdateStatusArg::Invalid => Self::Invalid,
         }
     }
 }
