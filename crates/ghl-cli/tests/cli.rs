@@ -1220,6 +1220,31 @@ fn command_schema_includes_raw_and_pit_validate() {
     assert!(
         commands
             .iter()
+            .any(|command| command["command_key"] == "doctor.summary")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "doctor.api")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "doctor.bundle")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "capabilities.list")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "capabilities.check")
+    );
+    assert!(
+        commands
+            .iter()
             .any(|command| command["command_key"] == "raw.request")
     );
     assert!(
@@ -1337,4 +1362,182 @@ fn command_schema_includes_raw_and_pit_validate() {
             .iter()
             .any(|command| command["command_key"] == "smoke.run")
     );
+}
+
+#[test]
+fn doctor_summary_reports_local_diagnostics() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["network"], false);
+    assert_eq!(value["data"]["schema_version"], 1);
+    assert!(
+        !value["data"]["config"]["paths"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(value["data"]["command_count"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn doctor_endpoint_reports_mapped_commands() {
+    let output = ghl_cli()
+        .args(["doctor", "endpoint", "contacts.search"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["endpoint"]["endpoint_key"], "contacts.search");
+    assert_eq!(value["data"]["safe_probe_available"], true);
+    assert!(
+        value["data"]["commands"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|command| command["command_key"] == "contacts.search")
+    );
+}
+
+#[test]
+fn capabilities_check_reports_policy_block_for_planned_write() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "auth",
+            "pit",
+            "add",
+            "--token-stdin",
+            "--location",
+            "loc_123",
+        ])
+        .write_stdin(
+            "pit-secret
+",
+        )
+        .assert()
+        .success();
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["capabilities", "check", "contacts.write"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["capability"], "contacts.write");
+    assert_eq!(value["data"]["state"], "blocked_by_policy");
+    assert_eq!(value["data"]["confidence"], "known");
+}
+
+#[test]
+fn capabilities_list_reports_expected_available_read() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "auth",
+            "pit",
+            "add",
+            "--token-stdin",
+            "--location",
+            "loc_123",
+        ])
+        .write_stdin(
+            "pit-secret
+",
+        )
+        .assert()
+        .success();
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["capabilities"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(
+        value["data"]["capabilities"]["contacts.list"]["state"],
+        "expected_available"
+    );
+}
+
+#[test]
+fn doctor_bundle_requires_redacted_flag_and_writes_safe_json() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "auth",
+            "pit",
+            "add",
+            "--token-stdin",
+            "--location",
+            "loc_123",
+        ])
+        .write_stdin(
+            "pit-secret-bundle
+",
+        )
+        .assert()
+        .success();
+    let out = temp.path().join("support-bundle.json");
+
+    let error = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["doctor", "bundle", "--out"])
+        .arg(&out)
+        .assert()
+        .failure()
+        .code(2)
+        .get_output()
+        .stderr
+        .clone();
+    let value: Value = serde_json::from_slice(&error).expect("json");
+    assert_eq!(value["error"]["code"], "validation_error");
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["doctor", "bundle", "--out"])
+        .arg(&out)
+        .arg("--redacted")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+    let rendered = std::fs::read_to_string(&out).expect("bundle");
+
+    assert_eq!(value["data"]["redacted"], true);
+    assert!(out.exists());
+    assert!(!rendered.contains("pit-secret-bundle"));
+    assert!(rendered.contains("endpoint_manifest"));
 }

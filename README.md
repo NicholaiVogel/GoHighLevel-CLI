@@ -94,6 +94,7 @@ It gives you:
 | Calendars | List calendars, get one calendar, summarize events, and fetch free slots |
 | Users and teams | Summary-only team-member list, get one user, and search by query or exact email |
 | Smoke | Read-only `smoke run` with status/count output and no customer data |
+| Diagnostics | Local/API doctor reports, capability checks, and redacted support bundles |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
 | Metadata | Command schema, endpoint manifest, error registry, shell completions |
@@ -272,6 +273,16 @@ ghl teams list [--skip <n>] [--limit <n>]
 
 ghl smoke run [--limit <n>] [--skip-optional]
 
+ghl doctor
+ghl doctor api [--limit <n>]
+ghl doctor endpoint <endpoint-key>
+ghl doctor bundle --out <path> --redacted
+
+ghl capabilities
+ghl capabilities list
+ghl capabilities check <capability>
+ghl capabilities command <command-key>
+
 ghl raw request --surface services --method get --path /locations/<location-id>
 ghl raw request --surface backend --method get --path <path>
 
@@ -367,6 +378,7 @@ Implemented now:
 - Typed `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
 - Typed `users list`, `users get`, `users search`, and `teams list`, with user list pagination applied client-side because the live endpoint only accepts `locationId`.
 - Read-only `smoke run` for safe real-account validation.
+- Local/API `doctor`, endpoint diagnostics, capability checks, and redacted JSON support bundles.
 - Endpoint manifest seed.
 - Command metadata.
 - Stable error registry.

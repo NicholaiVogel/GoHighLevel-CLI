@@ -524,7 +524,8 @@ ghl context show
 ghl context resolve --command <command-key>
 
 ghl capabilities
-ghl capabilities location <location-id>
+ghl capabilities list
+ghl capabilities check <capability>
 ghl capabilities command <command-key>
 
 ghl schema list
@@ -549,9 +550,10 @@ ghl audit list
 ghl audit show <entry-id>
 ghl audit export
 
-ghl doctor api
+ghl doctor
+ghl doctor api [--limit <n>]
 ghl doctor endpoint <endpoint-key>
-ghl doctor bundle --out <path> --redact
+ghl doctor bundle --out <path> --redacted
 
 ghl dev capture-fixture <command-key> --redact --out <path>
 ghl dev scan-fixtures <path>
@@ -1473,11 +1475,19 @@ Confidence values:
 ### 20.2 Doctor commands
 
 ```bash
-ghl doctor api [--include-internal]
+ghl doctor
+ghl doctor api [--limit <n>] [--include-internal]
 ghl doctor endpoint <endpoint-key>
-ghl doctor bundle --out <path> --redact
+ghl doctor bundle --out <path> --redacted
 ghl doctor shapes --from-fixtures tests/fixtures/ghl
 ```
+
+Current implementation:
+
+- `ghl doctor` is local-only and reports config path health, auth availability, endpoint coverage, command count, and warnings.
+- `ghl doctor api` runs the required safe-read smoke checks and returns statuses, counts, and HTTP codes only.
+- `ghl doctor endpoint <endpoint-key>` explains a bundled endpoint record, mapped commands, risk, and source notes.
+- `ghl doctor bundle --out <path> --redacted` writes a redacted JSON support bundle and refuses unredacted bundle creation.
 
 Requirements:
 
@@ -1598,7 +1608,8 @@ checks directly.
 
 ```bash
 ghl capabilities
-ghl capabilities location <location-id>
+ghl capabilities list
+ghl capabilities check <capability>
 ghl capabilities command <command-key>
 ```
 
@@ -1627,6 +1638,13 @@ Example output:
   }
 }
 ```
+
+Current implementation:
+
+- `ghl capabilities` and `ghl capabilities list` report inferred command availability from local command metadata, profile auth status, profile context, and profile policy.
+- `ghl capabilities check <capability>` accepts implemented command keys and planned capability names such as `contacts.write`.
+- `ghl capabilities command <command-key>` is an alias for checking a command key.
+- Results include state, confidence, implementation status, mapped endpoints, policy flags, and reasons.
 
 ### 23.2 Capability sources
 
@@ -2231,8 +2249,10 @@ or customer data into chat.
 ### 41.1 Bundle command
 
 ```bash
-ghl doctor bundle --out ghl-debug.zip --redact
+ghl doctor bundle --out ghl-debug.json --redacted
 ```
+
+Current implementation writes a redacted JSON bundle. Zip packaging can be added later without changing the bundle schema. The command refuses to run unless `--redacted` is present.
 
 ### 41.2 Bundle contents
 
@@ -3387,8 +3407,8 @@ references.
 - Implement idempotency and duplicate-prevention preflights for contacts,
   opportunities, appointments, and pipelines.
 - Implement fixture capture and fixture scanning for MVP endpoint families.
-- Implement `doctor api` and `doctor endpoint` for MVP safe-read endpoints.
-- Implement capabilities commands for MVP command groups.
+- Expand doctor shape checks and optional fixture-driven drift checks.
+- Expand capabilities with live permission probes when safe endpoints expose them.
 - Implement messaging compliance checks for SMS/email dry-runs and real sends.
 - Implement dry-run local/validated modes.
 - Implement undo metadata for MVP write commands and undo apply for simple reversible actions.

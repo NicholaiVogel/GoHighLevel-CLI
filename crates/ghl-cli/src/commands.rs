@@ -90,6 +90,10 @@ pub enum Command {
     #[command(subcommand)]
     Endpoints(EndpointsCommand),
 
+    Doctor(DoctorArgs),
+
+    Capabilities(CapabilitiesArgs),
+
     #[command(subcommand)]
     Raw(RawCommand),
 
@@ -269,6 +273,57 @@ pub enum EndpointsCommand {
     List,
     Show(EndpointShowArgs),
     Coverage,
+}
+
+#[derive(Debug, Args)]
+pub struct DoctorArgs {
+    #[command(subcommand)]
+    pub command: Option<DoctorCommand>,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum DoctorCommand {
+    Api(DoctorApiArgs),
+    Endpoint(DoctorEndpointArgs),
+    Bundle(DoctorBundleArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct DoctorApiArgs {
+    #[arg(long, default_value_t = 1)]
+    pub limit: u32,
+}
+
+#[derive(Debug, Args)]
+pub struct DoctorEndpointArgs {
+    pub endpoint_key: String,
+}
+
+#[derive(Debug, Args)]
+pub struct DoctorBundleArgs {
+    #[arg(long)]
+    pub out: PathBuf,
+
+    #[arg(long, alias = "redact", default_value_t = false)]
+    pub redacted: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct CapabilitiesArgs {
+    #[command(subcommand)]
+    pub command: Option<CapabilitiesCommand>,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum CapabilitiesCommand {
+    List,
+    Check(CapabilityCheckArgs),
+    Command(CapabilityCheckArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct CapabilityCheckArgs {
+    pub capability: String,
 }
 
 #[derive(Debug, Subcommand)]

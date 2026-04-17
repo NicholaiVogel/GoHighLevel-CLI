@@ -5,11 +5,11 @@ use std::io::{self, Read};
 
 use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
-    AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand, Cli, Command, CommandsCommand,
-    ConfigCommand, ContactsCommand, ConversationsCommand, EndpointsCommand, ErrorsCommand,
-    LocationsCommand, OpportunitiesCommand, PipelinesCommand, ProfilePolicyCommand,
-    ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs, TeamsCommand,
-    UserListArgs, UsersCommand,
+    AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand, CapabilitiesCommand, Cli,
+    Command, CommandsCommand, ConfigCommand, ContactsCommand, ConversationsCommand, DoctorCommand,
+    EndpointsCommand, ErrorsCommand, LocationsCommand, OpportunitiesCommand, PipelinesCommand,
+    ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand,
+    SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -206,6 +206,70 @@ fn execute(cli: Cli) -> Result<()> {
         Command::Endpoints(EndpointsCommand::Coverage) => {
             let manifest = ghl::bundled_manifest()?;
             print_success(ghl::endpoints::endpoint_coverage(&manifest), format, pretty)
+        }
+        Command::Doctor(args) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            match args.command {
+                None => print_success(
+                    ghl::doctor_summary(&paths, selected_profile.as_deref())?,
+                    format,
+                    pretty,
+                ),
+                Some(DoctorCommand::Api(args)) => print_success(
+                    ghl::doctor_api(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        selected_company.as_deref(),
+                        args.limit,
+                    )?,
+                    format,
+                    pretty,
+                ),
+                Some(DoctorCommand::Endpoint(args)) => {
+                    print_success(ghl::doctor_endpoint(&args.endpoint_key)?, format, pretty)
+                }
+                Some(DoctorCommand::Bundle(args)) => print_success(
+                    ghl::write_support_bundle(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        selected_company.as_deref(),
+                        &args.out,
+                        args.redacted,
+                    )?,
+                    format,
+                    pretty,
+                ),
+            }
+        }
+        Command::Capabilities(args) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            match args.command {
+                None | Some(CapabilitiesCommand::List) => print_success(
+                    ghl::capability_report(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        selected_company.as_deref(),
+                    )?,
+                    format,
+                    pretty,
+                ),
+                Some(CapabilitiesCommand::Check(args) | CapabilitiesCommand::Command(args)) => {
+                    print_success(
+                        ghl::check_capability(
+                            &paths,
+                            selected_profile.as_deref(),
+                            selected_location.as_deref(),
+                            selected_company.as_deref(),
+                            &args.capability,
+                        )?,
+                        format,
+                        pretty,
+                    )
+                }
+            }
         }
         Command::Raw(RawCommand::Request(args)) => {
             let request = ghl::RawGetRequest {
@@ -1013,20 +1077,24 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
         return true;
     }
 
-    !matches!(
-        command,
-        Command::Auth(AuthCommand::Pit(AuthPitCommand::Validate))
-            | Command::Raw(_)
-            | Command::Locations(_)
-            | Command::Contacts(_)
-            | Command::Conversations(_)
-            | Command::Pipelines(_)
-            | Command::Opportunities(_)
-            | Command::Calendars(_)
-            | Command::Users(_)
-            | Command::Teams(_)
-            | Command::Smoke(_)
-    )
+    match command {
+        Command::Doctor(args) => !matches!(args.command, Some(DoctorCommand::Api(_))),
+        Command::Capabilities(_) => true,
+        _ => !matches!(
+            command,
+            Command::Auth(AuthCommand::Pit(AuthPitCommand::Validate))
+                | Command::Raw(_)
+                | Command::Locations(_)
+                | Command::Contacts(_)
+                | Command::Conversations(_)
+                | Command::Pipelines(_)
+                | Command::Opportunities(_)
+                | Command::Calendars(_)
+                | Command::Users(_)
+                | Command::Teams(_)
+                | Command::Smoke(_)
+        ),
+    }
 }
 
 fn command_name(command: &Command) -> String {
@@ -1037,6 +1105,8 @@ fn command_name(command: &Command) -> String {
         Command::Profiles(_) => "profiles".to_owned(),
         Command::Errors(_) => "errors".to_owned(),
         Command::Endpoints(_) => "endpoints".to_owned(),
+        Command::Doctor(_) => "doctor".to_owned(),
+        Command::Capabilities(_) => "capabilities".to_owned(),
         Command::Raw(_) => "raw".to_owned(),
         Command::Locations(_) => "locations".to_owned(),
         Command::Contacts(_) => "contacts".to_owned(),

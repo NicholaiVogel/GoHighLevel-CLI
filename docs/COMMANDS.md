@@ -32,6 +32,14 @@ Implemented commands:
 - `ghl endpoints list`
 - `ghl endpoints show <endpoint-key>`
 - `ghl endpoints coverage`
+- `ghl doctor`
+- `ghl doctor api [--limit <n>]`
+- `ghl doctor endpoint <endpoint-key>`
+- `ghl doctor bundle --out <path> --redacted`
+- `ghl capabilities`
+- `ghl capabilities list`
+- `ghl capabilities check <capability>`
+- `ghl capabilities command <command-key>`
 - `ghl raw request --surface services|backend --method get --path <path> [--include-body]`
 - `ghl locations get <location-id>`
 - `ghl locations list [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
@@ -59,4 +67,11 @@ Implemented commands:
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, user/team-member list/get/search, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, user/team-member list/get/search, `doctor api`, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
+
+
+## Diagnostics
+
+`ghl doctor` is local-only and reports config path health, auth availability, command count, and endpoint coverage. `ghl doctor api` runs the same safe required read checks as smoke mode and prints only statuses, counts, and HTTP codes. `ghl doctor endpoint <endpoint-key>` explains the bundled endpoint record and mapped commands. `ghl doctor bundle --out <path> --redacted` writes a JSON support bundle that excludes credential stores and raw customer bodies. The redaction flag is mandatory.
+
+`ghl capabilities` lists inferred command availability for the selected profile. `ghl capabilities check <capability>` accepts either an implemented command key, such as `contacts.list`, or a planned capability name, such as `contacts.write`, and explains whether local auth, context, or profile policy blocks it.

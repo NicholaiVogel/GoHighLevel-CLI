@@ -190,6 +190,58 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             "EndpointCoverage",
             "0",
         ),
+        local(
+            "doctor.summary",
+            "doctor",
+            "Run local diagnostics without touching the network.",
+            "DoctorReport",
+            "2",
+        ),
+        remote_pit(
+            "doctor.api",
+            "doctor api [--limit <n>]",
+            "Run safe read-only API diagnostics without printing customer data.",
+            "DoctorReport",
+            "2",
+            &[
+                "locations.get",
+                "locations.search",
+                "contacts.search",
+                "conversations.search",
+                "pipelines.list",
+                "opportunities.search",
+                "calendars.list",
+                "users.list",
+            ],
+        ),
+        local(
+            "doctor.endpoint",
+            "doctor endpoint <endpoint-key>",
+            "Explain one endpoint manifest entry and its mapped commands.",
+            "EndpointDoctorReport",
+            "2",
+        ),
+        local(
+            "doctor.bundle",
+            "doctor bundle --out <path> --redacted",
+            "Write a redacted JSON support bundle without credential values or customer bodies.",
+            "DoctorBundleResult",
+            "2",
+        ),
+        local(
+            "capabilities.list",
+            "capabilities [list]",
+            "List inferred local command capabilities for the selected profile.",
+            "CapabilityReport",
+            "2",
+        ),
+        local(
+            "capabilities.check",
+            "capabilities check <capability>",
+            "Check one command or planned capability against local auth, context, and policy.",
+            "CapabilityCheck",
+            "2",
+        ),
         remote_pit(
             "raw.request",
             "raw request",
@@ -542,6 +594,7 @@ mod tests {
             assert!(command.implemented, "{}", command.command_key);
             match command.command_key.as_str() {
                 "auth.pit.validate"
+                | "doctor.api"
                 | "raw.request"
                 | "locations.get"
                 | "locations.list"

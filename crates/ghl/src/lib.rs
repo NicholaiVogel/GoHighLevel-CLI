@@ -5,12 +5,14 @@
 
 pub mod auth;
 pub mod calendars;
+pub mod capabilities;
 pub mod client;
 pub mod config;
 pub mod contacts;
 pub mod context;
 pub mod conversations;
 pub mod credentials;
+pub mod doctor;
 pub mod endpoints;
 pub mod errors;
 pub mod locations;
@@ -33,6 +35,10 @@ pub use calendars::{
     CalendarListDryRun, CalendarListOptions, CalendarListResult, calendar_events_dry_run,
     calendar_free_slots_dry_run, calendars_list_dry_run, get_calendar, get_calendar_dry_run,
     get_calendar_free_slots, list_calendar_events, list_calendars,
+};
+pub use capabilities::{
+    CapabilityCheck, CapabilityConfidence, CapabilityReport, CapabilityState, capability_report,
+    check_capability,
 };
 pub use client::{
     AuthClass, PitValidationResult, RawGetRequest, RawGetResponse, RawPostJsonRequest,
@@ -57,6 +63,10 @@ pub use conversations::{
 };
 pub use credentials::{
     CredentialStore, RedactedCredential, credential_ref, load_credentials, save_credentials,
+};
+pub use doctor::{
+    CliDoctorInfo, DoctorBundleResult, DoctorReport, EndpointDoctorReport, doctor_api,
+    doctor_endpoint, doctor_summary, write_support_bundle,
 };
 pub use endpoints::{EndpointCoverage, EndpointDefinition, EndpointManifest, bundled_manifest};
 pub use errors::{ErrorDefinition, GhlError, Result, error_definitions, find_error_definition};
