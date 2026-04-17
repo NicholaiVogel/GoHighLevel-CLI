@@ -1,6 +1,5 @@
 <h1 align="center">
   <img src="https://ghlcentral.com/wp-content/uploads/2024/01/HighLevel_Logo_Classic_black_transparent_1-1024x203.webp" alt="HighLevel" height="72" align="center" />
-  &nbsp;ghl
 </h1>
 
 <p align="center">
