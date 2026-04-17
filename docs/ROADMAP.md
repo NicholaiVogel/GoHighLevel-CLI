@@ -10,6 +10,6 @@ Profiles, local credential backend, local PIT storage, live PIT validation, HTTP
 
 ## Phase 2
 
-CRM core: location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, user/team-member list/get/search, profile company context, required location context, and read-only smoke run are started. Remaining Phase 2 work: appointment writes, guarded messaging, audit journal, idempotency, and fixtures. Capability checks, local/API doctor reports, endpoint diagnostics, and redacted JSON support bundles are started.
+CRM core: location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, user/team-member list/get/search, profile company context, required location context, and read-only smoke run are started. Remaining Phase 2 work: appointment writes, guarded messaging, fixtures, and wiring the implemented audit/idempotency spine into real write commands. Capability checks, local/API doctor reports, endpoint diagnostics, redacted JSON support bundles, audit journal commands, and idempotency cache commands are started.
 
 Later phases follow `docs/SPEC.md`.

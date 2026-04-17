@@ -95,6 +95,12 @@ pub enum Command {
     Capabilities(CapabilitiesArgs),
 
     #[command(subcommand)]
+    Audit(AuditCommand),
+
+    #[command(subcommand)]
+    Idempotency(IdempotencyCommand),
+
+    #[command(subcommand)]
     Raw(RawCommand),
 
     #[command(subcommand)]
@@ -324,6 +330,78 @@ pub enum CapabilitiesCommand {
 #[derive(Debug, Args)]
 pub struct CapabilityCheckArgs {
     pub capability: String,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum AuditCommand {
+    List(AuditListArgs),
+    Show(AuditShowArgs),
+    Export(AuditExportArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct AuditListArgs {
+    /// Inclusive RFC3339 datetime or Unix milliseconds lower bound.
+    #[arg(long)]
+    pub from: Option<String>,
+
+    /// Inclusive RFC3339 datetime or Unix milliseconds upper bound.
+    #[arg(long)]
+    pub to: Option<String>,
+
+    #[arg(long)]
+    pub action: Option<String>,
+
+    #[arg(long)]
+    pub resource: Option<String>,
+
+    #[arg(long, default_value_t = 50)]
+    pub limit: usize,
+}
+
+#[derive(Debug, Args)]
+pub struct AuditShowArgs {
+    pub entry_id: String,
+}
+
+#[derive(Debug, Args)]
+pub struct AuditExportArgs {
+    /// Inclusive RFC3339 datetime or Unix milliseconds lower bound.
+    #[arg(long)]
+    pub from: Option<String>,
+
+    /// Inclusive RFC3339 datetime or Unix milliseconds upper bound.
+    #[arg(long)]
+    pub to: Option<String>,
+
+    #[arg(long)]
+    pub action: Option<String>,
+
+    #[arg(long)]
+    pub resource: Option<String>,
+
+    #[arg(long)]
+    pub out: Option<PathBuf>,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum IdempotencyCommand {
+    List,
+    Show(IdempotencyShowArgs),
+    Clear(IdempotencyClearArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct IdempotencyShowArgs {
+    pub key: String,
+}
+
+#[derive(Debug, Args)]
+pub struct IdempotencyClearArgs {
+    pub key: String,
+
+    #[arg(long, default_value_t = false)]
+    pub yes: bool,
 }
 
 #[derive(Debug, Subcommand)]

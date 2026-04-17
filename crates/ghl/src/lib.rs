@@ -3,6 +3,7 @@
 //! Phase 0 intentionally contains only local scaffolding: config path resolution,
 //! command metadata, endpoint manifest loading, and the stable error registry.
 
+pub mod audit;
 pub mod auth;
 pub mod calendars;
 pub mod capabilities;
@@ -15,6 +16,7 @@ pub mod credentials;
 pub mod doctor;
 pub mod endpoints;
 pub mod errors;
+pub mod idempotency;
 pub mod locations;
 pub mod metadata;
 pub mod opportunities;
@@ -25,6 +27,12 @@ pub mod smoke;
 pub mod surfaces;
 pub mod users;
 
+pub use audit::{
+    AuditEntry, AuditEntryInput, AuditExportResult, AuditListOptions, AuditListResult,
+    AuditResource, AuditResultSummary, AuditShowResult, AuditUpstreamSummary, append_audit_entry,
+    audit_journal_path, export_audit_entries, list_audit_entries, parse_timestamp_filter,
+    show_audit_entry,
+};
 pub use auth::{
     AuthStatus, LocalPitList, PitAddResult, PitRemoveResult, add_pit, auth_status, list_local_pits,
     remove_local_pit,
@@ -70,6 +78,13 @@ pub use doctor::{
 };
 pub use endpoints::{EndpointCoverage, EndpointDefinition, EndpointManifest, bundled_manifest};
 pub use errors::{ErrorDefinition, GhlError, Result, error_definitions, find_error_definition};
+pub use idempotency::{
+    IdempotencyCheck, IdempotencyCheckState, IdempotencyClearResult, IdempotencyListResult,
+    IdempotencyPut, IdempotencyRecord, IdempotencyShowResult, IdempotencyStatus,
+    check_idempotency_key, clear_idempotency_record, idempotency_store_path,
+    list_idempotency_records, record_idempotency_key, scoped_idempotency_key,
+    show_idempotency_record, stable_request_hash,
+};
 pub use locations::{
     LocationGetDryRun, LocationGetResult, LocationSearchDryRun, LocationSearchOptions,
     LocationSearchOrder, LocationSearchResult, get_location, get_location_dry_run, list_locations,

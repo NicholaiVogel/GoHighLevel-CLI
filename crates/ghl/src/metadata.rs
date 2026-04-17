@@ -242,6 +242,48 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             "CapabilityCheck",
             "2",
         ),
+        local(
+            "audit.list",
+            "audit list [--from <datetime>] [--to <datetime>] [--action <name>] [--resource <id>]",
+            "List local audit journal entries without network access.",
+            "AuditListResult",
+            "2",
+        ),
+        local(
+            "audit.show",
+            "audit show <entry-id>",
+            "Show one local audit journal entry.",
+            "AuditShowResult",
+            "2",
+        ),
+        local(
+            "audit.export",
+            "audit export [--out <path>]",
+            "Export filtered local audit journal entries as redacted JSON.",
+            "AuditExportResult",
+            "2",
+        ),
+        local(
+            "idempotency.list",
+            "idempotency list",
+            "List local idempotency records used by guarded write commands.",
+            "IdempotencyListResult",
+            "2",
+        ),
+        local(
+            "idempotency.show",
+            "idempotency show <key>",
+            "Show one local idempotency record by key or scoped key.",
+            "IdempotencyShowResult",
+            "2",
+        ),
+        local(
+            "idempotency.clear",
+            "idempotency clear <key> --yes",
+            "Clear one local idempotency record after explicit confirmation.",
+            "IdempotencyClearResult",
+            "2",
+        ),
         remote_pit(
             "raw.request",
             "raw request",
@@ -536,7 +578,7 @@ fn remote_pit(
 
 fn policy_flags_for(command_key: &str) -> Vec<String> {
     match command_key {
-        "profiles.policy.reset" => vec!["confirmation_required".to_owned()],
+        "profiles.policy.reset" | "idempotency.clear" => vec!["confirmation_required".to_owned()],
         _ => Vec::new(),
     }
 }
@@ -559,6 +601,12 @@ mod tests {
         assert!(keys.contains(&"auth.pit.add"));
         assert!(keys.contains(&"profiles.list"));
         assert!(keys.contains(&"auth.pit.validate"));
+        assert!(keys.contains(&"audit.list"));
+        assert!(keys.contains(&"audit.show"));
+        assert!(keys.contains(&"audit.export"));
+        assert!(keys.contains(&"idempotency.list"));
+        assert!(keys.contains(&"idempotency.show"));
+        assert!(keys.contains(&"idempotency.clear"));
         assert!(keys.contains(&"raw.request"));
         assert!(keys.contains(&"locations.get"));
         assert!(keys.contains(&"locations.list"));

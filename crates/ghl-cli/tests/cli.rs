@@ -1245,6 +1245,36 @@ fn command_schema_includes_raw_and_pit_validate() {
     assert!(
         commands
             .iter()
+            .any(|command| command["command_key"] == "audit.list")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "audit.show")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "audit.export")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "idempotency.list")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "idempotency.show")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "idempotency.clear")
+    );
+    assert!(
+        commands
+            .iter()
             .any(|command| command["command_key"] == "raw.request")
     );
     assert!(
@@ -1540,4 +1570,131 @@ fn doctor_bundle_requires_redacted_flag_and_writes_safe_json() {
     assert!(out.exists());
     assert!(!rendered.contains("pit-secret-bundle"));
     assert!(rendered.contains("endpoint_manifest"));
+}
+
+#[test]
+fn audit_list_show_and_export_read_local_redacted_journal() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let audit_dir = temp.path().join("data/audit");
+    std::fs::create_dir_all(&audit_dir).expect("audit dir");
+    let journal = audit_dir.join("audit.jsonl");
+    std::fs::write(
+        &journal,
+        r#"{"schema_version":1,"id":"audit-test-1","timestamp_unix_ms":1000,"profile":"default","location_id":"loc_123","command":"contacts.create","action_class":"write","dry_run":false,"policy_flags":["confirmation_required"],"resource":{"resource_type":"contact","id":"contact_123"},"request_summary":{"token":"[REDACTED]","email":"person@example.com"},"result":{"status":"success","resource_id":"contact_123"}}
+"#,
+    )
+    .expect("journal write");
+
+    let list = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "audit",
+            "list",
+            "--action",
+            "write",
+            "--resource",
+            "contact_123",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let list_value: Value = serde_json::from_slice(&list).expect("json");
+    assert_eq!(list_value["data"]["count"], 1);
+    assert_eq!(list_value["data"]["entries"][0]["id"], "audit-test-1");
+
+    let show = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["audit", "show", "audit-test-1"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let rendered = String::from_utf8_lossy(&show);
+    let show_value: Value = serde_json::from_slice(&show).expect("json");
+    assert_eq!(show_value["data"]["entry"]["resource"]["id"], "contact_123");
+    assert!(!rendered.contains("pit-secret"));
+
+    let out = temp.path().join("audit-export.json");
+    let export = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["audit", "export", "--out"])
+        .arg(&out)
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let export_value: Value = serde_json::from_slice(&export).expect("json");
+    assert_eq!(export_value["data"]["count"], 1);
+    assert!(out.exists());
+}
+
+#[test]
+fn idempotency_list_show_and_clear_manage_local_cache() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let store_dir = temp.path().join("data/idempotency");
+    std::fs::create_dir_all(&store_dir).expect("idempotency dir");
+    let store = store_dir.join("idempotency.jsonl");
+    std::fs::write(
+        &store,
+        r#"{"schema_version":1,"key":"create-contact-1","scoped_key":"default:loc_123:contacts.create:create-contact-1","profile":"default","location_id":"loc_123","command":"contacts.create","request_hash":"fnv1a64:abc","status":"succeeded","resource_id":"contact_123","audit_entry_id":"audit-test-1","created_at_unix_ms":1000,"updated_at_unix_ms":1000}
+"#,
+    )
+    .expect("store write");
+
+    let list = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["idempotency", "list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let list_value: Value = serde_json::from_slice(&list).expect("json");
+    assert_eq!(list_value["data"]["count"], 1);
+
+    let show = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["idempotency", "show", "create-contact-1"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let show_value: Value = serde_json::from_slice(&show).expect("json");
+    assert_eq!(show_value["data"]["record"]["resource_id"], "contact_123");
+
+    let error = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["idempotency", "clear", "create-contact-1"])
+        .assert()
+        .failure()
+        .code(15)
+        .get_output()
+        .stderr
+        .clone();
+    let error_value: Value = serde_json::from_slice(&error).expect("json");
+    assert_eq!(error_value["error"]["code"], "confirmation_required");
+
+    let cleared = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args(["idempotency", "clear", "create-contact-1", "--yes"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let cleared_value: Value = serde_json::from_slice(&cleared).expect("json");
+    assert_eq!(cleared_value["data"]["removed"], true);
+    assert_eq!(cleared_value["data"]["remaining_count"], 0);
 }

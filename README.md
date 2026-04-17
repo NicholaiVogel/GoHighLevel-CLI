@@ -95,14 +95,16 @@ It gives you:
 | Users and teams | Summary-only team-member list, get one user, and search by query or exact email |
 | Smoke | Read-only `smoke run` with status/count output and no customer data |
 | Diagnostics | Local/API doctor reports, capability checks, and redacted support bundles |
+| Audit | Local redacted audit journal list/show/export |
+| Idempotency | Local idempotency cache list/show/clear for guarded future writes |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
 | Metadata | Command schema, endpoint manifest, error registry, shell completions |
 | Docs | Product spec, command reference, network notes, smoke guide, coverage plan |
 
 The current implementation is intentionally small. It can connect to a test
-location, prove the auth path works, and perform the first read-only CRM and team-member slices.
-All writes are still being built.
+location, prove the auth path works, perform the first read-only CRM and team-member slices, and keep the local audit/idempotency spine ready for guarded writes.
+All real GHL writes are still being built.
 
 ## Quick start
 
@@ -283,6 +285,14 @@ ghl capabilities list
 ghl capabilities check <capability>
 ghl capabilities command <command-key>
 
+ghl audit list [--from <datetime>] [--to <datetime>] [--action <name>] [--resource <id>]
+ghl audit show <entry-id>
+ghl audit export [--from <datetime>] [--to <datetime>] [--out <path>]
+
+ghl idempotency list
+ghl idempotency show <key>
+ghl idempotency clear <key> --yes
+
 ghl raw request --surface services --method get --path /locations/<location-id>
 ghl raw request --surface backend --method get --path <path>
 
@@ -352,7 +362,7 @@ Errors keep the same shape:
 - `--offline` blocks real network commands unless `--dry-run=local` is set.
 - Response redaction covers authorization headers, cookies, tokens, API keys,
   secrets, passwords, OTPs, message bodies, and token-like values.
-- Future write commands must pass through dry-run, profile policy, audit, and
+- Future write commands must pass through dry-run, profile policy, audit, idempotency where applicable, and
   explicit confirmation gates before real execution.
 
 This matters because an agent should be useful around CRM data without being
@@ -379,6 +389,8 @@ Implemented now:
 - Typed `users list`, `users get`, `users search`, and `teams list`, with user list pagination applied client-side because the live endpoint only accepts `locationId`.
 - Read-only `smoke run` for safe real-account validation.
 - Local/API `doctor`, endpoint diagnostics, capability checks, and redacted JSON support bundles.
+- Local audit journal spine with `audit list`, `audit show`, and `audit export`.
+- Local idempotency cache spine with conflict-safe request hashes and `idempotency list/show/clear`.
 - Endpoint manifest seed.
 - Command metadata.
 - Stable error registry.
@@ -387,7 +399,7 @@ Implemented now:
 
 Current focus:
 
-- first real GHL account validation with a dedicated test location
+- wiring audit and idempotency into the first guarded write commands
 - stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend

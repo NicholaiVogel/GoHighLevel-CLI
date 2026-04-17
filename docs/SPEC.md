@@ -60,6 +60,8 @@ Implemented so far:
 - Read-only `smoke run` validates auth, context, and safe CRM reads while printing only statuses, counts, and error codes.
 - `contacts list` provides summary-only contact discovery; exact email and phone filters use GHL's accepted filter-array shape.
 - `calendars events` returns event IDs/counts rather than appointment bodies; free-slot reads return availability slots.
+- Local audit journal spine: `audit list`, `audit show`, and `audit export`.
+- Local idempotency cache spine: stable redacted request hashes, key conflict checks, and `idempotency list/show/clear`.
 
 Remaining initial implementation priorities:
 
@@ -1259,6 +1261,8 @@ Rules:
 - Reusing the same idempotency key with a different request hash must fail.
 - Successful idempotent creates return the previous resource id when known.
 
+Implementation note: the current codebase has the local idempotency cache and conflict-checking library in place, with `ghl idempotency list`, `ghl idempotency show`, and `ghl idempotency clear`. The first real write commands still need to call this preflight before mutation.
+
 ### 16.2 Retry rules for writes
 
 - GET and safe read operations may retry 429 and 5xx responses.
@@ -1308,7 +1312,7 @@ audit journal entry. This is provenance for agents and operators.
 Default location:
 
 ```text
-<GHL_CLI_CONFIG_DIR>/audit/audit.jsonl
+<resolved data dir>/audit/audit.jsonl
 ```
 
 Requirements:
@@ -1321,6 +1325,8 @@ Requirements:
   journal write fails, return success with `audit_warning` metadata and print a
   warning to stderr.
 
+Implementation note: local append/list/show/export support is implemented now. The resolved path is visible from `ghl config path` as `audit_dir`, with the journal at `audit.jsonl` inside that directory.
+
 ### 17.2 Audit commands
 
 ```bash
@@ -1329,6 +1335,8 @@ ghl audit show <entry-id>
 ghl audit export [--from <datetime>] [--to <datetime>] [--out <path>]
 ghl audit prune --before <datetime> --yes
 ```
+
+Implemented now: `list`, `show`, and `export`. `prune` remains planned for the maintenance slice.
 
 ### 17.3 Audit entry shape
 
@@ -3403,8 +3411,8 @@ references.
 - Implement pipeline list/get.
 - Implement appointment writes and broader calendar resources.
 - Implement pagination normalization for all MVP list commands.
-- Implement audit journal for MVP write commands and sensitive dry-runs.
-- Implement idempotency and duplicate-prevention preflights for contacts,
+- Wire the implemented audit journal into MVP write commands and sensitive dry-runs.
+- Wire the implemented idempotency cache and duplicate-prevention preflights into contacts,
   opportunities, appointments, and pipelines.
 - Implement fixture capture and fixture scanning for MVP endpoint families.
 - Expand doctor shape checks and optional fixture-driven drift checks.

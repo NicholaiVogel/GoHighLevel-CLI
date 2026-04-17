@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, plus read-only location, contact, conversation, pipeline, opportunity, calendar, user/team, and smoke commands.
+Status: Phase 1 auth/profile and HTTP spine, plus read-only CRM/team commands, smoke diagnostics, and local audit/idempotency commands.
 
 Machine-readable command metadata is available with:
 
@@ -40,6 +40,12 @@ Implemented commands:
 - `ghl capabilities list`
 - `ghl capabilities check <capability>`
 - `ghl capabilities command <command-key>`
+- `ghl audit list [--from <datetime>] [--to <datetime>] [--action <name>] [--resource <id>] [--limit <n>]`
+- `ghl audit show <entry-id>`
+- `ghl audit export [--from <datetime>] [--to <datetime>] [--action <name>] [--resource <id>] [--out <path>]`
+- `ghl idempotency list`
+- `ghl idempotency show <key>`
+- `ghl idempotency clear <key> --yes`
 - `ghl raw request --surface services|backend --method get --path <path> [--include-body]`
 - `ghl locations get <location-id>`
 - `ghl locations list [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
@@ -67,6 +73,8 @@ Implemented commands:
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
+Audit and idempotency commands are local-only. `audit list/show/export` reads the redacted JSONL journal under the resolved audit data directory. `idempotency list/show/clear` manages the local idempotency cache that future write commands will use to prevent accidental duplicate creates. `idempotency clear` requires `--yes` or global `--yes`.
+
 Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, user/team-member list/get/search, `doctor api`, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
 
 
@@ -75,3 +83,9 @@ Network support is deliberately narrow: PIT validation, raw GET, read-only locat
 `ghl doctor` is local-only and reports config path health, auth availability, command count, and endpoint coverage. `ghl doctor api` runs the same safe required read checks as smoke mode and prints only statuses, counts, and HTTP codes. `ghl doctor endpoint <endpoint-key>` explains the bundled endpoint record and mapped commands. `ghl doctor bundle --out <path> --redacted` writes a JSON support bundle that excludes credential stores and raw customer bodies. The redaction flag is mandatory.
 
 `ghl capabilities` lists inferred command availability for the selected profile. `ghl capabilities check <capability>` accepts either an implemented command key, such as `contacts.list`, or a planned capability name, such as `contacts.write`, and explains whether local auth, context, or profile policy blocks it.
+
+## Audit and idempotency
+
+`ghl audit list` accepts RFC3339 datetimes or Unix milliseconds for `--from` and `--to`, plus action/resource filters. `ghl audit export` writes owner-only JSON when `--out` is provided or returns matching entries in the normal JSON envelope when omitted.
+
+`ghl idempotency list` and `ghl idempotency show` inspect the local duplicate-prevention cache. `ghl idempotency clear <key> --yes` removes one key by raw key or scoped key. Reusing the same idempotency key with a different redacted request hash is rejected by the core library.

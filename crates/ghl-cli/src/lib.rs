@@ -5,9 +5,10 @@ use std::io::{self, Read};
 
 use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
-    AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand, CapabilitiesCommand, Cli,
-    Command, CommandsCommand, ConfigCommand, ContactsCommand, ConversationsCommand, DoctorCommand,
-    EndpointsCommand, ErrorsCommand, LocationsCommand, OpportunitiesCommand, PipelinesCommand,
+    AuditCommand, AuditExportArgs, AuditListArgs, AuthCommand, AuthPitAddArgs, AuthPitCommand,
+    CalendarsCommand, CapabilitiesCommand, Cli, Command, CommandsCommand, ConfigCommand,
+    ContactsCommand, ConversationsCommand, DoctorCommand, EndpointsCommand, ErrorsCommand,
+    IdempotencyCommand, LocationsCommand, OpportunitiesCommand, PipelinesCommand,
     ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand,
     SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
 };
@@ -52,6 +53,7 @@ fn execute(cli: Cli) -> Result<()> {
     let selected_location = cli.location.clone();
     let selected_company = cli.company.clone();
     let dry_run = cli.dry_run;
+    let global_yes = cli.yes;
 
     if cli.offline && !is_local_command(&cli.command, dry_run) {
         return Err(GhlError::OfflineBlocked {
@@ -265,6 +267,53 @@ fn execute(cli: Cli) -> Result<()> {
                             selected_company.as_deref(),
                             &args.capability,
                         )?,
+                        format,
+                        pretty,
+                    )
+                }
+            }
+        }
+        Command::Audit(command) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            match command {
+                AuditCommand::List(args) => print_success(
+                    ghl::list_audit_entries(&paths, audit_list_options(args)?)?,
+                    format,
+                    pretty,
+                ),
+                AuditCommand::Show(args) => print_success(
+                    ghl::show_audit_entry(&paths, &args.entry_id)?,
+                    format,
+                    pretty,
+                ),
+                AuditCommand::Export(args) => print_success(
+                    ghl::export_audit_entries(
+                        &paths,
+                        audit_export_options(&args)?,
+                        args.out.as_deref(),
+                    )?,
+                    format,
+                    pretty,
+                ),
+            }
+        }
+        Command::Idempotency(command) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            match command {
+                IdempotencyCommand::List => {
+                    print_success(ghl::list_idempotency_records(&paths)?, format, pretty)
+                }
+                IdempotencyCommand::Show(args) => print_success(
+                    ghl::show_idempotency_record(&paths, &args.key)?,
+                    format,
+                    pretty,
+                ),
+                IdempotencyCommand::Clear(args) => {
+                    if !global_yes && !args.yes {
+                        return Err(GhlError::ConfirmationRequired);
+                    }
+                    print_success(
+                        ghl::clear_idempotency_record(&paths, &args.key)?,
                         format,
                         pretty,
                     )
@@ -1040,6 +1089,30 @@ fn set_policy(paths: &ghl::ConfigPaths, args: ProfilePolicySetArgs) -> Result<gh
     Ok(policy)
 }
 
+fn audit_list_options(args: AuditListArgs) -> Result<ghl::AuditListOptions> {
+    Ok(ghl::AuditListOptions {
+        from_unix_ms: parse_optional_timestamp(args.from.as_deref())?,
+        to_unix_ms: parse_optional_timestamp(args.to.as_deref())?,
+        action: args.action,
+        resource: args.resource,
+        limit: Some(args.limit),
+    })
+}
+
+fn audit_export_options(args: &AuditExportArgs) -> Result<ghl::AuditListOptions> {
+    Ok(ghl::AuditListOptions {
+        from_unix_ms: parse_optional_timestamp(args.from.as_deref())?,
+        to_unix_ms: parse_optional_timestamp(args.to.as_deref())?,
+        action: args.action.clone(),
+        resource: args.resource.clone(),
+        limit: None,
+    })
+}
+
+fn parse_optional_timestamp(value: Option<&str>) -> Result<Option<u64>> {
+    value.map(ghl::parse_timestamp_filter).transpose()
+}
+
 fn smoke_options(args: SmokeRunArgs) -> ghl::SmokeRunOptions {
     ghl::SmokeRunOptions {
         limit: args.limit,
@@ -1079,7 +1152,7 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
 
     match command {
         Command::Doctor(args) => !matches!(args.command, Some(DoctorCommand::Api(_))),
-        Command::Capabilities(_) => true,
+        Command::Capabilities(_) | Command::Audit(_) | Command::Idempotency(_) => true,
         _ => !matches!(
             command,
             Command::Auth(AuthCommand::Pit(AuthPitCommand::Validate))
@@ -1107,6 +1180,8 @@ fn command_name(command: &Command) -> String {
         Command::Endpoints(_) => "endpoints".to_owned(),
         Command::Doctor(_) => "doctor".to_owned(),
         Command::Capabilities(_) => "capabilities".to_owned(),
+        Command::Audit(_) => "audit".to_owned(),
+        Command::Idempotency(_) => "idempotency".to_owned(),
         Command::Raw(_) => "raw".to_owned(),
         Command::Locations(_) => "locations".to_owned(),
         Command::Contacts(_) => "contacts".to_owned(),
