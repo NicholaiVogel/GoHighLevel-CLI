@@ -477,9 +477,48 @@ fn contacts_search_dry_run_uses_location_override_and_exact_filter() {
     assert_eq!(value["data"]["request_body_json"]["locationId"], "loc_123");
     assert_eq!(value["data"]["request_body_json"]["query"], "John");
     assert_eq!(
-        value["data"]["request_body_json"]["filters"]["email"],
+        value["data"]["request_body_json"]["filters"][0]["field"],
+        "email"
+    );
+    assert_eq!(
+        value["data"]["request_body_json"]["filters"][0]["operator"],
+        "eq"
+    );
+    assert_eq!(
+        value["data"]["request_body_json"]["filters"][0]["value"],
         "john@example.com"
     );
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn contacts_list_dry_run_returns_summary_request_without_search_term() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "contacts",
+            "list",
+            "--limit",
+            "5",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "POST");
+    assert_eq!(value["data"]["path"], "/contacts/search");
+    assert_eq!(value["data"]["request_body_json"]["locationId"], "loc_123");
+    assert_eq!(value["data"]["request_body_json"]["pageLimit"], 5);
+    assert!(value["data"]["request_body_json"].get("query").is_none());
+    assert!(value["data"]["request_body_json"].get("filters").is_none());
     assert_eq!(value["data"]["network"], false);
 }
 
@@ -936,6 +975,11 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "locations.search")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "contacts.list")
     );
     assert!(
         commands

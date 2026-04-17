@@ -31,9 +31,9 @@ pub use client::{
 };
 pub use config::{CliConfig, ConfigDoctor, ConfigPaths, resolve_paths, resolve_paths_from_env};
 pub use contacts::{
-    ContactGetDryRun, ContactGetResult, ContactSearchDryRun, ContactSearchOptions,
-    ContactSearchResult, contacts_search_dry_run, get_contact, get_contact_dry_run,
-    search_contacts,
+    ContactGetDryRun, ContactGetResult, ContactListDryRun, ContactListOptions, ContactListResult,
+    ContactSearchDryRun, ContactSearchOptions, ContactSearchResult, contacts_list_dry_run,
+    contacts_search_dry_run, get_contact, get_contact_dry_run, list_contacts, search_contacts,
 };
 pub use context::{
     ContextSource, ResolvedContext, ResolvedContextValue, resolve_context,

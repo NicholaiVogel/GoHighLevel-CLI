@@ -36,6 +36,7 @@ Implemented commands:
 - `ghl locations get <location-id>`
 - `ghl locations list [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
 - `ghl locations search <email> [--company <company-id>] [--skip <n>] [--limit <n>] [--order asc|desc]`
+- `ghl contacts list [--limit <n>] [--start-after-id <id>] [--start-after <cursor>]`
 - `ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>] [--start-after-id <id>] [--start-after <cursor>]`
 - `ghl contacts get <contact-id>`
 - `ghl conversations search [--contact <contact-id>] [--query <query>] [--status all|read|unread|starred|recents] [--limit <n>] [--assigned-to <user-id>] [--last-message-type <type>] [--start-after-date <epoch-ms>]`
@@ -49,4 +50,4 @@ Implemented commands:
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, opportunity notes, and smoke-run customer data are redacted from normal output.

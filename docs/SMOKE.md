@@ -15,6 +15,7 @@ ghl --config-dir /tmp/ghl-cli-smoke raw request --surface services --method get 
 ghl --config-dir /tmp/ghl-cli-smoke locations get loc_test --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke locations list --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke locations search test@example.com --dry-run=local
+ghl --config-dir /tmp/ghl-cli-smoke contacts list --limit 5 --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke contacts search "Test" --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke contacts search --email test@example.com --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke contacts get contact_test --dry-run=local
@@ -48,6 +49,7 @@ The required live checks are:
 - `auth.status`, local PIT availability
 - `context.location`, resolved location context
 - `locations.get`, selected location is readable
+- `contacts.list`, contact search endpoint is readable without printing contacts
 - `pipelines.list`, sales pipelines are readable
 - `conversations.search`, conversation search is readable
 - `opportunities.search`, opportunity search is readable

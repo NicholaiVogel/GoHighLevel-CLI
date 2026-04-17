@@ -1,6 +1,6 @@
 # Configuration
 
-The CLI now implements path resolution, profile persistence, local PIT credential storage, read-only PIT validation, raw GET, and typed location get/list/search.
+The CLI now implements path resolution, profile persistence, local PIT credential storage, read-only PIT validation, raw GET, and the current typed read-only CRM spine: locations, contacts, conversations, pipelines, and opportunities.
 
 Resolution precedence:
 

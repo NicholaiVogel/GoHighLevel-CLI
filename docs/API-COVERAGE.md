@@ -6,7 +6,7 @@ The bundled endpoint manifest currently includes:
 
 - `locations.get`
 - `locations.search`
-- `contacts.search`
+- `contacts.search` (contacts list/search)
 - `contacts.get`
 - `conversations.search`
 - `conversations.get`

@@ -223,6 +223,14 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             &["locations.search"],
         ),
         remote_pit(
+            "contacts.list",
+            "contacts list [--limit <n>]",
+            "List contact ids and counts in the resolved location without printing contact bodies.",
+            "ContactListResult",
+            "2",
+            &["contacts.search"],
+        ),
+        remote_pit(
             "contacts.search",
             "contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>]",
             "Search contacts in the resolved location using query and exact email or phone filters.",
@@ -431,6 +439,7 @@ mod tests {
         assert!(keys.contains(&"locations.get"));
         assert!(keys.contains(&"locations.list"));
         assert!(keys.contains(&"locations.search"));
+        assert!(keys.contains(&"contacts.list"));
         assert!(keys.contains(&"contacts.search"));
         assert!(keys.contains(&"contacts.get"));
         assert!(keys.contains(&"conversations.search"));
@@ -457,6 +466,7 @@ mod tests {
                 | "locations.get"
                 | "locations.list"
                 | "locations.search"
+                | "contacts.list"
                 | "contacts.search"
                 | "contacts.get"
                 | "conversations.search"

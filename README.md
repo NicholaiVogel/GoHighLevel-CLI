@@ -87,7 +87,7 @@ It gives you:
 | PIT auth | Store local Private Integration Token references, list redacted previews, remove local refs |
 | Live validation | Validate PIT with `GET /locations/{location_id}` without printing the body |
 | Locations | Get by id, list by company, search with the current upstream email filter |
-| Contacts | Search by query, exact email, or phone; get one contact by id |
+| Contacts | Summary-only list, search by query/exact email/phone, get one contact by id |
 | Conversations | Search by contact/query/status, get one conversation, list messages with bodies redacted |
 | Pipelines | List pipelines; get one pipeline by id from the location pipeline list |
 | Opportunities | Search by contact/pipeline/stage/status; get one opportunity by id |
@@ -176,6 +176,7 @@ You can also fetch individual resources through the typed commands:
 ./target/debug/ghl --profile default locations get <location-id> --pretty
 ./target/debug/ghl --profile default locations list --pretty
 ./target/debug/ghl --profile default locations search user@example.com --pretty
+./target/debug/ghl --profile default contacts list --limit 5 --pretty
 ./target/debug/ghl --profile default contacts search "Sarah" --limit 10 --pretty
 ./target/debug/ghl --profile default contacts search --email sarah@example.com --pretty
 ./target/debug/ghl --profile default contacts get <contact-id> --pretty
@@ -197,6 +198,7 @@ access, use local dry-run:
 
 ```bash
 ./target/debug/ghl locations get <location-id> --dry-run=local
+./target/debug/ghl --location <location-id> contacts list --limit 5 --dry-run=local
 ./target/debug/ghl --location <location-id> contacts search "Sarah" --dry-run=local
 ./target/debug/ghl --location <location-id> conversations search --dry-run=local
 ./target/debug/ghl --location <location-id> opportunities search --dry-run=local
@@ -232,6 +234,7 @@ ghl locations get <location-id>
 ghl locations list [--company <company-id>]
 ghl locations search <email> [--company <company-id>]
 
+ghl contacts list [--limit <n>]
 ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>]
 ghl contacts get <contact-id>
 
@@ -336,7 +339,7 @@ Implemented now:
 - Read-only PIT validation.
 - Guarded raw GET.
 - Typed `locations get`, `locations list`, and `locations search`.
-- Typed `contacts search` and `contacts get`.
+- Typed `contacts list`, `contacts search`, and `contacts get`.
 - Typed `conversations search`, `conversations get`, and `conversations messages`.
 - Typed `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
 - Read-only `smoke run` for safe real-account validation.

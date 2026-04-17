@@ -193,6 +193,12 @@ fn smoke_run_inner(
             "company context unavailable; pass --company or set a profile company id",
         ));
     }
+    checks.push(check_contacts_list(
+        paths,
+        profile_name,
+        location_override,
+        limit,
+    ));
     checks.push(check_pipelines_list(paths, profile_name, location_override));
     checks.push(check_conversations_search(
         paths,
@@ -342,6 +348,12 @@ fn push_planned_checks(
             "company context unavailable; pass --company or set a profile company id",
         ));
     }
+    checks.push(planned(
+        "contacts.list",
+        true,
+        Some("contacts.search"),
+        &format!("would POST /contacts/search with pageLimit {limit}"),
+    ));
     checks.push(planned(
         "pipelines.list",
         true,
@@ -544,6 +556,48 @@ fn check_locations_list(
         result,
         |body| count_array(body, "locations"),
     )
+}
+
+fn check_contacts_list(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    limit: u32,
+) -> SmokeCheck {
+    match crate::list_contacts(
+        paths,
+        profile_name,
+        location_override,
+        crate::ContactListOptions {
+            limit,
+            start_after_id: None,
+            start_after: None,
+        },
+    ) {
+        Ok(result) if result.success => passed(
+            "contacts.list",
+            true,
+            Some("contacts.search"),
+            Some(result.status),
+            Some(result.count),
+        ),
+        Ok(result) => failed(
+            "contacts.list",
+            true,
+            Some("contacts.search"),
+            Some("ghl_api_error"),
+            "request completed but did not return a success status",
+        )
+        .with_http_status(result.status)
+        .with_count(Some(result.count)),
+        Err(error) => failed(
+            "contacts.list",
+            true,
+            Some("contacts.search"),
+            Some(error.code()),
+            error.to_string(),
+        ),
+    }
 }
 
 fn check_pipelines_list(
@@ -997,7 +1051,7 @@ impl SmokeCheck {
 
 #[cfg(test)]
 mod tests {
-    use httpmock::Method::GET;
+    use httpmock::Method::{GET, POST};
     use httpmock::MockServer;
     use serde_json::json;
 
@@ -1032,6 +1086,16 @@ mod tests {
         server.mock(|when, then| {
             when.method(GET).path("/locations/loc_123");
             then.status(200).json_body(json!({ "id": "loc_123" }));
+        });
+        server.mock(|when, then| {
+            when.method(POST).path("/contacts/search").json_body(json!({
+                "locationId": "loc_123",
+                "pageLimit": 1
+            }));
+            then.status(200).json_body(json!({
+                "contacts": [{ "id": "contact_123" }],
+                "total": 1
+            }));
         });
         server.mock(|when, then| {
             when.method(GET)
@@ -1102,6 +1166,11 @@ mod tests {
             when.method(GET).path("/locations/loc_123");
             then.status(500)
                 .json_body(json!({ "message": "upstream error" }));
+        });
+        server.mock(|when, then| {
+            when.method(POST).path("/contacts/search");
+            then.status(200)
+                .json_body(json!({ "contacts": [], "total": 0 }));
         });
         server.mock(|when, then| {
             when.method(GET)

@@ -536,7 +536,7 @@ The main spec now covers every family, but some are broad future specs. To reach
 - `ghl contacts campaigns add|remove|remove-all`
 - `ghl contacts workflows add|remove`
 
-Implemented now: `ghl contacts search` and `ghl contacts get` with PIT auth,
+Implemented now: `ghl contacts list`, `ghl contacts search`, and `ghl contacts get` with PIT auth,
 resolved location context, dry-run previews, endpoint manifest entries, and mock
 HTTP coverage. Remaining contact work is write safety, tags, tasks, notes,
 business associations, followers, campaigns, workflows, duplicate handling, and

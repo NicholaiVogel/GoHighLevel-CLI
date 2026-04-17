@@ -60,8 +60,8 @@
       "risk": "low",
       "status": "implemented",
       "phase": "2",
-      "command_keys": ["contacts.search"],
-      "response_schema": "ContactSearchResult"
+      "command_keys": ["contacts.list", "contacts.search"],
+      "response_schema": "ContactSearchResult|ContactListResult"
     },
     {
       "endpoint_key": "contacts.get",

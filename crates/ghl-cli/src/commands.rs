@@ -332,8 +332,21 @@ pub struct LocationSearchArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ContactsCommand {
+    List(ContactListArgs),
     Search(ContactSearchArgs),
     Get(ContactGetArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct ContactListArgs {
+    #[arg(long, default_value_t = 25)]
+    pub limit: u32,
+
+    #[arg(long)]
+    pub start_after_id: Option<String>,
+
+    #[arg(long)]
+    pub start_after: Option<u64>,
 }
 
 #[derive(Debug, Args)]

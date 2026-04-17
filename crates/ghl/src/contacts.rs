@@ -44,6 +44,13 @@ pub struct ContactSearchOptions {
     pub start_after: Option<u64>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContactListOptions {
+    pub limit: u32,
+    pub start_after_id: Option<String>,
+    pub start_after: Option<u64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ContactSearchResult {
     pub profile: String,
@@ -66,8 +73,36 @@ pub struct ContactSearchResult {
     pub body_text: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContactListResult {
+    pub profile: String,
+    pub context: ResolvedContext,
+    pub location_id: String,
+    pub limit: u32,
+    pub endpoint: String,
+    pub url: String,
+    pub status: u16,
+    pub success: bool,
+    pub count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<u64>,
+    pub contact_ids: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ContactSearchDryRun {
+    pub method: &'static str,
+    pub surface: &'static str,
+    pub path: String,
+    pub context: ResolvedContext,
+    pub location_id: String,
+    pub request_body_json: Value,
+    pub auth_class: &'static str,
+    pub network: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContactListDryRun {
     pub method: &'static str,
     pub surface: &'static str,
     pub path: String,
@@ -113,6 +148,45 @@ pub fn get_contact(
     })
 }
 
+pub fn list_contacts(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    options: ContactListOptions,
+) -> Result<ContactListResult> {
+    validate_list_options(&options)?;
+    let context = resolve_context(paths, profile_name, location_override, None)?;
+    let location_id = context.require_location_id()?.to_owned();
+    let endpoint = contacts_search_endpoint();
+    let request_body = contacts_list_body(&location_id, &options);
+    let response = post_json(
+        paths,
+        profile_name,
+        RawPostJsonRequest {
+            surface: Surface::Services,
+            path: endpoint.to_owned(),
+            auth_class: AuthClass::Pit,
+            body: request_body,
+            include_body: true,
+        },
+    )?;
+    let (count, total, contact_ids) = summarize_contact_page(response.body_json.as_ref());
+
+    Ok(ContactListResult {
+        profile: context.profile.clone(),
+        context,
+        location_id,
+        limit: options.limit,
+        endpoint: endpoint.to_owned(),
+        url: response.url,
+        status: response.status,
+        success: response.success,
+        count,
+        total,
+        contact_ids,
+    })
+}
+
 pub fn search_contacts(
     paths: &crate::ConfigPaths,
     profile_name: Option<&str>,
@@ -150,6 +224,29 @@ pub fn search_contacts(
         success: response.success,
         body_json: response.body_json,
         body_text: response.body_text,
+    })
+}
+
+pub fn contacts_list_dry_run(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    options: ContactListOptions,
+) -> Result<ContactListDryRun> {
+    validate_list_options(&options)?;
+    let context = resolve_context_for_dry_run(paths, profile_name, location_override, None)?;
+    let location_id = context.require_location_id()?.to_owned();
+    let request_body_json = contacts_list_body(&location_id, &options);
+
+    Ok(ContactListDryRun {
+        method: "POST",
+        surface: "services",
+        path: contacts_search_endpoint().to_owned(),
+        context,
+        location_id,
+        request_body_json,
+        auth_class: "pit",
+        network: false,
     })
 }
 
@@ -206,7 +303,39 @@ fn contacts_search_endpoint() -> &'static str {
     "/contacts/search"
 }
 
+fn contacts_list_body(location_id: &str, options: &ContactListOptions) -> Value {
+    contacts_search_body_parts(
+        location_id,
+        options.limit,
+        None,
+        None,
+        None,
+        options.start_after_id.clone(),
+        options.start_after,
+    )
+}
+
 fn contacts_search_body(location_id: &str, options: &ContactSearchOptions) -> Value {
+    contacts_search_body_parts(
+        location_id,
+        options.limit,
+        options.query.clone(),
+        options.email.clone(),
+        options.phone.clone(),
+        options.start_after_id.clone(),
+        options.start_after,
+    )
+}
+
+fn contacts_search_body_parts(
+    location_id: &str,
+    limit: u32,
+    query: Option<String>,
+    email: Option<String>,
+    phone: Option<String>,
+    start_after_id: Option<String>,
+    start_after: Option<u64>,
+) -> Value {
     let mut body = Map::new();
     body.insert(
         "locationId".to_owned(),
@@ -214,37 +343,76 @@ fn contacts_search_body(location_id: &str, options: &ContactSearchOptions) -> Va
     );
     body.insert(
         "pageLimit".to_owned(),
-        Value::Number(serde_json::Number::from(options.limit)),
+        Value::Number(serde_json::Number::from(limit)),
     );
-    if let Some(query) = trimmed_optional(options.query.clone()) {
+    if let Some(query) = trimmed_optional(query) {
         body.insert("query".to_owned(), Value::String(query));
     }
-    if let Some(start_after_id) = trimmed_optional(options.start_after_id.clone()) {
+    if let Some(start_after_id) = trimmed_optional(start_after_id) {
         body.insert("startAfterId".to_owned(), Value::String(start_after_id));
     }
-    if let Some(start_after) = options.start_after {
+    if let Some(start_after) = start_after {
         body.insert(
             "startAfter".to_owned(),
             Value::Number(serde_json::Number::from(start_after)),
         );
     }
 
-    let mut filters = Map::new();
-    if let Some(email) = trimmed_optional(options.email.clone()) {
-        filters.insert("email".to_owned(), Value::String(email));
+    let mut filters = Vec::new();
+    if let Some(email) = trimmed_optional(email) {
+        filters.push(exact_filter("email", email));
     }
-    if let Some(phone) = trimmed_optional(options.phone.clone()) {
-        filters.insert("phone".to_owned(), Value::String(phone));
+    if let Some(phone) = trimmed_optional(phone) {
+        filters.push(exact_filter("phone", phone));
     }
     if !filters.is_empty() {
-        body.insert("filters".to_owned(), Value::Object(filters));
+        body.insert("filters".to_owned(), Value::Array(filters));
     }
 
     Value::Object(body)
 }
 
+fn exact_filter(field: &str, value: String) -> Value {
+    let mut filter = Map::new();
+    filter.insert("field".to_owned(), Value::String(field.to_owned()));
+    filter.insert("operator".to_owned(), Value::String("eq".to_owned()));
+    filter.insert("value".to_owned(), Value::String(value));
+    Value::Object(filter)
+}
+
+fn summarize_contact_page(body: Option<&Value>) -> (usize, Option<u64>, Vec<String>) {
+    let Some(body) = body else {
+        return (0, None, Vec::new());
+    };
+    let contacts = body
+        .get("contacts")
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+    let contact_ids = contacts
+        .iter()
+        .filter_map(|contact| {
+            contact
+                .get("id")
+                .or_else(|| contact.get("contactId"))
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        })
+        .collect::<Vec<_>>();
+    let total = body.get("total").and_then(Value::as_u64);
+
+    (contacts.len(), total, contact_ids)
+}
+
 fn validate_contact_id(contact_id: &str) -> Result<()> {
     validate_path_segment(contact_id, "contact id")
+}
+
+fn validate_list_options(options: &ContactListOptions) -> Result<()> {
+    validate_limit(options.limit, "contact list")?;
+    validate_optional_text(options.start_after_id.as_deref(), "contact start-after id")?;
+
+    Ok(())
 }
 
 fn validate_search_options(options: &ContactSearchOptions) -> Result<()> {
@@ -256,15 +424,21 @@ fn validate_search_options(options: &ContactSearchOptions) -> Result<()> {
             message: "contact search needs a query, --email, or --phone".to_owned(),
         });
     }
-    if options.limit == 0 || options.limit > 100 {
-        return Err(GhlError::Validation {
-            message: "contact search limit must be between 1 and 100".to_owned(),
-        });
-    }
+    validate_limit(options.limit, "contact search")?;
     validate_optional_text(options.query.as_deref(), "contact search query")?;
     validate_optional_text(options.email.as_deref(), "contact email filter")?;
     validate_optional_text(options.phone.as_deref(), "contact phone filter")?;
     validate_optional_text(options.start_after_id.as_deref(), "contact start-after id")?;
+
+    Ok(())
+}
+
+fn validate_limit(limit: u32, label: &str) -> Result<()> {
+    if limit == 0 || limit > 100 {
+        return Err(GhlError::Validation {
+            message: format!("{label} limit must be between 1 and 100"),
+        });
+    }
 
     Ok(())
 }
@@ -373,6 +547,66 @@ mod tests {
     }
 
     #[test]
+    fn contact_list_returns_summary_without_contact_bodies() {
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(POST)
+                .path("/contacts/search")
+                .header("authorization", "Bearer pit-secret")
+                .json_body(json!({
+                    "locationId": "loc_123",
+                    "pageLimit": 5
+                }));
+            then.status(200)
+                .header("content-type", "application/json")
+                .json_body(json!({
+                    "contacts": [
+                        { "id": "contact_123", "email": "john@example.com", "phone": "+15551234567" }
+                    ],
+                    "total": 1
+                }));
+        });
+        let temp = tempfile::tempdir().expect("tempdir");
+        let paths = resolve_paths(Some(temp.path()));
+        add_pit(
+            &paths,
+            "default",
+            "pit-secret".to_owned(),
+            Some("loc_123".to_owned()),
+            None,
+            true,
+        )
+        .expect("pit");
+        let mut profiles = crate::profiles::load_profiles(&paths).expect("profiles");
+        profiles
+            .profiles
+            .get_mut("default")
+            .expect("profile")
+            .base_urls
+            .services = server.base_url();
+        crate::profiles::save_profiles(&paths, &profiles).expect("save");
+
+        let result = list_contacts(
+            &paths,
+            Some("default"),
+            None,
+            ContactListOptions {
+                limit: 5,
+                start_after_id: None,
+                start_after: None,
+            },
+        )
+        .expect("contacts");
+
+        mock.assert();
+        assert_eq!(result.location_id, "loc_123");
+        assert_eq!(result.status, 200);
+        assert_eq!(result.count, 1);
+        assert_eq!(result.total, Some(1));
+        assert_eq!(result.contact_ids, vec!["contact_123".to_owned()]);
+    }
+
+    #[test]
     fn contact_search_posts_location_query_and_exact_filters() {
         let server = MockServer::start();
         let mock = server.mock(|when, then| {
@@ -383,9 +617,9 @@ mod tests {
                     "locationId": "loc_123",
                     "pageLimit": 25,
                     "query": "John",
-                    "filters": {
-                        "email": "john@example.com"
-                    }
+                    "filters": [
+                        { "field": "email", "operator": "eq", "value": "john@example.com" }
+                    ]
                 }));
             then.status(200)
                 .header("content-type", "application/json")
@@ -467,7 +701,12 @@ mod tests {
             crate::ContextSource::Override
         );
         assert_eq!(result.request_body_json["locationId"], "loc_override");
-        assert_eq!(result.request_body_json["filters"]["phone"], "+15551234567");
+        assert_eq!(result.request_body_json["filters"][0]["field"], "phone");
+        assert_eq!(result.request_body_json["filters"][0]["operator"], "eq");
+        assert_eq!(
+            result.request_body_json["filters"][0]["value"],
+            "+15551234567"
+        );
     }
 
     #[test]

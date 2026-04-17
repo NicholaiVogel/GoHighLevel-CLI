@@ -306,6 +306,37 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+        Command::Contacts(ContactsCommand::List(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::ContactListOptions {
+                limit: args.limit,
+                start_after_id: args.start_after_id,
+                start_after: args.start_after,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::contacts_list_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::list_contacts(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
         Command::Contacts(ContactsCommand::Search(args)) => {
             let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
             let options = ghl::ContactSearchOptions {

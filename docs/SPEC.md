@@ -39,7 +39,7 @@ agents a working CRM spine before we bolt on every last GHL subsystem.
 
 ## Implementation Status Snapshot
 
-Last updated: 2026-04-16 during the read-only smoke runner slice.
+Last updated: 2026-04-16 during the contact discovery and exact-filter hardening slice.
 
 Implemented so far:
 
@@ -53,11 +53,12 @@ Implemented so far:
 - Local PIT commands: `auth pit add`, `auth pit list-local`, `auth pit remove-local`, `auth pit validate`, and `auth status`.
 - Profile commands: list, show, set default, set default company, set default location, and policy show/set/reset.
 - HTTP client spine for `services` and `backend` surfaces with PIT auth headers, redacted response handling, explicit `raw request` GET, and read-only PIT validation through `GET /locations/{location_id}`.
-- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
+- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts list`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
 - CRM read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
 - Conversation message bodies and preview bodies are redacted from normal response output.
 - Opportunity notes are redacted from normal response output.
 - Read-only `smoke run` validates auth, context, and safe CRM reads while printing only statuses, counts, and error codes.
+- `contacts list` provides summary-only contact discovery; exact email and phone filters use GHL's accepted filter-array shape.
 
 Remaining initial implementation priorities:
 
@@ -460,6 +461,7 @@ ghl locations list
 ghl locations get <location-id>
 ghl locations search <email>
 
+ghl contacts list [--limit <n>]
 ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>]
 ghl contacts get <contact-id>
 ghl contacts create [...fields]
@@ -2449,6 +2451,7 @@ ghl maintenance prune [--audit-before <datetime>] [--jobs-before <datetime>] [--
 ### 48.2 Commands
 
 ```bash
+ghl contacts list [--limit <n>]
 ghl contacts search [<query>] [--limit <n>] [--email <email>] [--phone <phone>]
 ghl contacts get <contact-id>
 ghl contacts create [...fields] [--dry-run]
@@ -2967,7 +2970,7 @@ Mock tests must cover:
   and rate-limited OTP email.
 - Refresh success with rotated token.
 - Refresh failure when refresh token is consumed.
-- Contacts search/get/create/update/delete.
+- Contacts list/search/get/create/update/delete.
 - Opportunity search/create/move/delete.
 - Pipeline create/update/delete rules.
 - Conversation reads and dry-run message send.
@@ -3363,7 +3366,7 @@ references.
 ### 73.3 Phase 2: CRM core
 
 - Implement locations.
-- Implement contact search/get.
+- Implement contact list/search/get.
 - Implement broader contact writes, tags, tasks, notes, timeline, and export.
 - Implement conversation search/get/messages.
 - Implement broader conversation message reads, recordings, transcriptions, and attachment operations.

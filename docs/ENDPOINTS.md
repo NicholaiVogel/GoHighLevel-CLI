@@ -6,7 +6,7 @@ The first implemented endpoint records are:
 
 - `locations.get`, used by PIT validation and read-only location get.
 - `locations.search`, used by read-only location list/search.
-- `contacts.search`, used by read-only contact search.
+- `contacts.search`, used by summary-only contact list and read-only contact search.
 - `contacts.get`, used by read-only contact get.
 - `conversations.search`, used by read-only conversation search.
 - `conversations.get`, used by read-only conversation get.
