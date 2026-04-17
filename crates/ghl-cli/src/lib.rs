@@ -5,12 +5,12 @@ use std::io::{self, Read};
 
 use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
-    AuditCommand, AuditExportArgs, AuditListArgs, AuthCommand, AuthPitAddArgs, AuthPitCommand,
-    CalendarsCommand, CapabilitiesCommand, Cli, Command, CommandsCommand, ConfigCommand,
-    ContactsCommand, ConversationsCommand, DoctorCommand, EndpointsCommand, ErrorsCommand,
-    IdempotencyCommand, LocationsCommand, OpportunitiesCommand, PipelinesCommand,
-    ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand,
-    SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
+    AppointmentCreateArgs, AppointmentsCommand, AuditCommand, AuditExportArgs, AuditListArgs,
+    AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand, CapabilitiesCommand, Cli,
+    Command, CommandsCommand, ConfigCommand, ContactsCommand, ConversationsCommand, DoctorCommand,
+    EndpointsCommand, ErrorsCommand, IdempotencyCommand, LocationsCommand, OpportunitiesCommand,
+    PipelinesCommand, ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand,
+    SmokeCommand, SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -843,6 +843,36 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+        Command::Appointments(AppointmentsCommand::Create(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = appointment_create_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::create_appointment_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::create_appointment(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
 
         Command::Users(UsersCommand::List(args)) => {
             let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
@@ -1089,6 +1119,25 @@ fn set_policy(paths: &ghl::ConfigPaths, args: ProfilePolicySetArgs) -> Result<gh
     Ok(policy)
 }
 
+fn appointment_create_options(args: AppointmentCreateArgs) -> ghl::AppointmentCreateOptions {
+    ghl::AppointmentCreateOptions {
+        calendar_id: args.calendar,
+        contact_id: args.contact,
+        starts_at: args.starts_at,
+        ends_at: args.ends_at,
+        title: args.title,
+        appointment_status: args.status.into(),
+        assigned_user_id: args.assigned_user,
+        address: args.address,
+        meeting_location_type: args.meeting_location_type,
+        timezone: args.timezone,
+        ignore_date_range: args.ignore_date_range,
+        to_notify: args.notify,
+        idempotency_key: args.idempotency_key,
+        skip_free_slot_check: args.skip_free_slot_check,
+    }
+}
+
 fn audit_list_options(args: AuditListArgs) -> Result<ghl::AuditListOptions> {
     Ok(ghl::AuditListOptions {
         from_unix_ms: parse_optional_timestamp(args.from.as_deref())?,
@@ -1163,6 +1212,7 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
                 | Command::Pipelines(_)
                 | Command::Opportunities(_)
                 | Command::Calendars(_)
+                | Command::Appointments(_)
                 | Command::Users(_)
                 | Command::Teams(_)
                 | Command::Smoke(_)
@@ -1189,6 +1239,7 @@ fn command_name(command: &Command) -> String {
         Command::Pipelines(_) => "pipelines".to_owned(),
         Command::Opportunities(_) => "opportunities".to_owned(),
         Command::Calendars(_) => "calendars".to_owned(),
+        Command::Appointments(_) => "appointments".to_owned(),
         Command::Users(_) => "users".to_owned(),
         Command::Teams(_) => "teams".to_owned(),
         Command::Smoke(_) => "smoke".to_owned(),

@@ -62,6 +62,7 @@ Implemented so far:
 - `calendars events` returns event IDs/counts rather than appointment bodies; free-slot reads return availability slots.
 - Local audit journal spine: `audit list`, `audit show`, and `audit export`.
 - Local idempotency cache spine: stable redacted request hashes, key conflict checks, and `idempotency list/show/clear`.
+- First guarded write command: `appointments create` with dry-run audit, real-write confirmation, profile policy blocking, idempotency, and free-slot preflight.
 
 Remaining initial implementation priorities:
 
@@ -2585,6 +2586,7 @@ ghl appointments notes create <appointment-id> --body <text>|--from-file <path> 
 Requirements:
 
 - Appointment creation should validate start/end ordering locally.
+- Appointment creation is implemented now for `POST /calendars/events/appointments`. Dry-run writes a redacted audit entry without network mutation. Real create requires global `--yes`, `allow_destructive`, an idempotency key, and a free-slot preflight unless explicitly skipped.
 - Free-slot reads should be available before appointment creation.
 - Delete requires `--yes` and `allow_destructive`.
 - Timezone handling must preserve profile location timezone when known.
@@ -3411,9 +3413,8 @@ references.
 - Implement pipeline list/get.
 - Implement appointment writes and broader calendar resources.
 - Implement pagination normalization for all MVP list commands.
-- Wire the implemented audit journal into MVP write commands and sensitive dry-runs.
-- Wire the implemented idempotency cache and duplicate-prevention preflights into contacts,
-  opportunities, appointments, and pipelines.
+- Extend the implemented audit/idempotency write pattern from appointment create into contacts, opportunities, and pipelines.
+- Implement appointment update/cancel and appointment notes with the same guarded write pattern.
 - Implement fixture capture and fixture scanning for MVP endpoint families.
 - Expand doctor shape checks and optional fixture-driven drift checks.
 - Expand capabilities with live permission probes when safe endpoints expose them.

@@ -3,6 +3,7 @@
 //! Phase 0 intentionally contains only local scaffolding: config path resolution,
 //! command metadata, endpoint manifest loading, and the stable error registry.
 
+pub mod appointments;
 pub mod audit;
 pub mod auth;
 pub mod calendars;
@@ -27,6 +28,11 @@ pub mod smoke;
 pub mod surfaces;
 pub mod users;
 
+pub use appointments::{
+    AppointmentCreateDryRun, AppointmentCreateOptions, AppointmentCreateResult,
+    AppointmentPreflightSummary, AppointmentStatus, PreflightStatus, create_appointment,
+    create_appointment_dry_run,
+};
 pub use audit::{
     AuditEntry, AuditEntryInput, AuditExportResult, AuditListOptions, AuditListResult,
     AuditResource, AuditResultSummary, AuditShowResult, AuditUpstreamSummary, append_audit_entry,

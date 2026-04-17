@@ -249,6 +249,22 @@
       "response_schema": "CalendarFreeSlotsResult"
     },
     {
+      "endpoint_key": "appointments.create",
+      "surface": "services",
+      "method": "POST",
+      "path_template": "/calendars/events/appointments",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["appointments.create"],
+      "response_schema": "AppointmentCreateResult"
+    },
+    {
       "endpoint_key": "users.list",
       "surface": "services",
       "method": "GET",

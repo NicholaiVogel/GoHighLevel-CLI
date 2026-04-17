@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, plus read-only CRM/team commands, smoke diagnostics, and local audit/idempotency commands.
+Status: Phase 1 auth/profile and HTTP spine, read-only CRM/team commands, guarded appointment create, smoke diagnostics, and local audit/idempotency commands.
 
 Machine-readable command metadata is available with:
 
@@ -64,6 +64,7 @@ Implemented commands:
 - `ghl calendars get <calendar-id>`
 - `ghl calendars events [--calendar <id>] [--date <date>] [--from <datetime>] [--to <datetime>]`
 - `ghl calendars free-slots --calendar <id> --date <date> [--timezone <timezone>]`
+- `ghl appointments create --calendar <id> --contact <id> --starts-at <datetime> --ends-at <datetime> [--title <text>] [--status new|confirmed] [--assigned-user <id>] [--meeting-location-type <type>] [--timezone <tz>] [--idempotency-key <key>] [--skip-free-slot-check]`
 - `ghl users list [--skip <n>] [--limit <n>]`
 - `ghl users get <user-id>`
 - `ghl users search --email <email>`
@@ -75,7 +76,7 @@ Implemented commands:
 
 Audit and idempotency commands are local-only. `audit list/show/export` reads the redacted JSONL journal under the resolved audit data directory. `idempotency list/show/clear` manages the local idempotency cache that future write commands will use to prevent accidental duplicate creates. `idempotency clear` requires `--yes` or global `--yes`.
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, user/team-member list/get/search, `doctor api`, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, guarded appointment create, user/team-member list/get/search, `doctor api`, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
 
 
 ## Diagnostics
@@ -89,3 +90,7 @@ Network support is deliberately narrow: PIT validation, raw GET, read-only locat
 `ghl audit list` accepts RFC3339 datetimes or Unix milliseconds for `--from` and `--to`, plus action/resource filters. `ghl audit export` writes owner-only JSON when `--out` is provided or returns matching entries in the normal JSON envelope when omitted.
 
 `ghl idempotency list` and `ghl idempotency show` inspect the local duplicate-prevention cache. `ghl idempotency clear <key> --yes` removes one key by raw key or scoped key. Reusing the same idempotency key with a different redacted request hash is rejected by the core library.
+
+## Appointments
+
+`ghl appointments create` is the first guarded write command. With `--dry-run=local`, it validates the local request shape, writes a redacted sensitive dry-run audit entry, and performs no network mutation. A real create requires global `--yes`, profile policy `allow_destructive=true`, `--idempotency-key <key>`, and, unless `--skip-free-slot-check` is passed, a successful free-slot preflight that contains the requested start time. Real creates write audit and idempotency records.

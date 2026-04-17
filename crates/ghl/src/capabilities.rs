@@ -224,6 +224,42 @@ fn evaluate_command(context: &CapabilityContext, command: CommandMetadata) -> Ca
         );
     }
 
+    if command
+        .policy_flags
+        .iter()
+        .any(|flag| flag == "allow_destructive")
+        && context
+            .policy
+            .as_ref()
+            .is_none_or(|policy| !policy.allow_destructive)
+    {
+        reasons.push("profile policy blocks write/destructive actions by default".to_owned());
+        return check_from_command(
+            command,
+            CapabilityState::BlockedByPolicy,
+            CapabilityConfidence::Known,
+            reasons,
+        );
+    }
+
+    if command
+        .policy_flags
+        .iter()
+        .any(|flag| flag == "allow_messaging")
+        && context
+            .policy
+            .as_ref()
+            .is_none_or(|policy| !policy.allow_messaging)
+    {
+        reasons.push("profile policy blocks messaging actions by default".to_owned());
+        return check_from_command(
+            command,
+            CapabilityState::BlockedByPolicy,
+            CapabilityConfidence::Known,
+            reasons,
+        );
+    }
+
     reasons.push(
         "local auth and required context are present; no live permission probe was run".to_owned(),
     );
@@ -340,6 +376,7 @@ fn requires_location_context(command_key: &str) -> bool {
             | "calendars.get"
             | "calendars.events"
             | "calendars.free_slots"
+            | "appointments.create"
             | "users.list"
             | "users.get"
             | "teams.list"

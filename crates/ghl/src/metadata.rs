@@ -429,6 +429,14 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             &["calendars.free_slots"],
         ),
         remote_pit(
+            "appointments.create",
+            "appointments create --calendar <id> --contact <id> --starts-at <datetime> --ends-at <datetime>",
+            "Create an appointment through a guarded write path with dry-run, audit, idempotency, policy, and free-slot checks.",
+            "AppointmentCreateResult|AppointmentCreateDryRun",
+            "2",
+            &["appointments.create", "calendars.free_slots"],
+        ),
+        remote_pit(
             "users.list",
             "users list [--skip <n>] [--limit <n>]",
             "List user ids and counts for team members in the resolved location without printing user bodies.",
@@ -579,6 +587,11 @@ fn remote_pit(
 fn policy_flags_for(command_key: &str) -> Vec<String> {
     match command_key {
         "profiles.policy.reset" | "idempotency.clear" => vec!["confirmation_required".to_owned()],
+        "appointments.create" => vec![
+            "allow_destructive".to_owned(),
+            "confirmation_required".to_owned(),
+            "idempotency_key_required".to_owned(),
+        ],
         _ => Vec::new(),
     }
 }
@@ -625,6 +638,7 @@ mod tests {
         assert!(keys.contains(&"calendars.get"));
         assert!(keys.contains(&"calendars.events"));
         assert!(keys.contains(&"calendars.free_slots"));
+        assert!(keys.contains(&"appointments.create"));
         assert!(keys.contains(&"users.list"));
         assert!(keys.contains(&"users.get"));
         assert!(keys.contains(&"users.search"));
@@ -661,6 +675,7 @@ mod tests {
                 | "calendars.get"
                 | "calendars.events"
                 | "calendars.free_slots"
+                | "appointments.create"
                 | "users.list"
                 | "users.get"
                 | "users.search"

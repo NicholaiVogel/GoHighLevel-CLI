@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_implemented_read_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 18);
-    assert_eq!(value["data"]["command_mapped_count"], 18);
-    assert_eq!(value["data"]["implemented_count"], 18);
+    assert_eq!(value["data"]["endpoint_count"], 19);
+    assert_eq!(value["data"]["command_mapped_count"], 19);
+    assert_eq!(value["data"]["implemented_count"], 19);
 }
 
 #[test]
@@ -1370,6 +1370,11 @@ fn command_schema_includes_raw_and_pit_validate() {
     assert!(
         commands
             .iter()
+            .any(|command| command["command_key"] == "appointments.create")
+    );
+    assert!(
+        commands
+            .iter()
             .any(|command| command["command_key"] == "users.list")
     );
     assert!(
@@ -1697,4 +1702,105 @@ fn idempotency_list_show_and_clear_manage_local_cache() {
     let cleared_value: Value = serde_json::from_slice(&cleared).expect("json");
     assert_eq!(cleared_value["data"]["removed"], true);
     assert_eq!(cleared_value["data"]["remaining_count"], 0);
+}
+
+#[test]
+fn appointments_create_dry_run_writes_audit_and_plans_preflight() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "appointments",
+            "create",
+            "--calendar",
+            "cal_123",
+            "--contact",
+            "contact_123",
+            "--starts-at",
+            "2026-02-27T09:00:00-07:00",
+            "--ends-at",
+            "2026-02-27T09:30:00-07:00",
+            "--title",
+            "Discovery Call",
+            "--assigned-user",
+            "user_123",
+            "--meeting-location-type",
+            "phone",
+            "--timezone",
+            "America/Denver",
+            "--idempotency-key",
+            "appt-key-1",
+            "--no-notify",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "POST");
+    assert_eq!(value["data"]["path"], "/calendars/events/appointments");
+    assert_eq!(value["data"]["request_body_json"]["locationId"], "loc_123");
+    assert_eq!(value["data"]["request_body_json"]["toNotify"], false);
+    assert_eq!(
+        value["data"]["preflight"]["free_slot_check"]["status"],
+        "planned"
+    );
+    assert_eq!(value["data"]["network"], false);
+
+    let audit =
+        std::fs::read_to_string(temp.path().join("data/audit/audit.jsonl")).expect("audit journal");
+    assert!(audit.contains("appointments.create"));
+}
+
+#[test]
+fn appointments_create_real_requires_confirmation() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "auth",
+            "pit",
+            "add",
+            "--token-stdin",
+            "--location",
+            "loc_123",
+        ])
+        .write_stdin("pit-secret\n")
+        .assert()
+        .success();
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "appointments",
+            "create",
+            "--calendar",
+            "cal_123",
+            "--contact",
+            "contact_123",
+            "--starts-at",
+            "2026-02-27T09:00:00-07:00",
+            "--ends-at",
+            "2026-02-27T09:30:00-07:00",
+            "--idempotency-key",
+            "appt-key-1",
+            "--skip-free-slot-check",
+        ])
+        .assert()
+        .failure()
+        .code(15)
+        .get_output()
+        .stderr
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["error"]["code"], "confirmation_required");
 }

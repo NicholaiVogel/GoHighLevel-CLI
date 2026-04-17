@@ -91,6 +91,7 @@ It gives you:
 | Pipelines | List pipelines; get one pipeline by id from the location pipeline list |
 | Opportunities | Search by contact/pipeline/stage/status; get one opportunity by id |
 | Calendars | List calendars, get one calendar, summarize events, and fetch free slots |
+| Appointments | Guarded appointment create with dry-run, audit, idempotency, policy, and free-slot preflight |
 | Users and teams | Summary-only team-member list, get one user, and search by query or exact email |
 | Smoke | Read-only `smoke run` with status/count output and no customer data |
 | Diagnostics | Local/API doctor reports, capability checks, and redacted support bundles |
@@ -266,6 +267,8 @@ ghl calendars get <calendar-id>
 ghl calendars events [--calendar <calendar-id>] [--date <date>] [--from <datetime>] [--to <datetime>]
 ghl calendars free-slots --calendar <calendar-id> --date <date> [--timezone <timezone>]
 
+ghl appointments create --calendar <calendar-id> --contact <contact-id> --starts-at <datetime> --ends-at <datetime> [--dry-run=local] [--idempotency-key <key>]
+
 ghl users list [--skip <n>] [--limit <n>]
 ghl users get <user-id>
 ghl users search --email <email>
@@ -361,7 +364,7 @@ Errors keep the same shape:
 - `--offline` blocks real network commands unless `--dry-run=local` is set.
 - Response redaction covers authorization headers, cookies, tokens, API keys,
   secrets, passwords, OTPs, message bodies, and token-like values.
-- Future write commands must pass through dry-run, profile policy, audit, idempotency where applicable, and
+- Write commands pass through dry-run, profile policy, audit, idempotency where applicable, and
   explicit confirmation gates before real execution.
 
 This matters because an agent should be useful around CRM data without being
@@ -385,6 +388,7 @@ Implemented now:
 - Typed `conversations search`, `conversations get`, and `conversations messages`.
 - Typed `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
 - Typed `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
+- Guarded `appointments create` with dry-run audit, real-write confirmation, policy blocking, idempotency, and free-slot preflight.
 - Typed `users list`, `users get`, `users search`, and `teams list`, with user list pagination applied client-side because the live endpoint only accepts `locationId`.
 - Read-only `smoke run` for safe real-account validation.
 - Local/API `doctor`, endpoint diagnostics, capability checks, and redacted JSON support bundles.
@@ -398,7 +402,7 @@ Implemented now:
 
 Current focus:
 
-- wiring audit and idempotency into the first guarded write commands
+- appointment update/cancel dry-runs and guarded real writes
 - stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend

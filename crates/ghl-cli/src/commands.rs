@@ -122,6 +122,9 @@ pub enum Command {
     Calendars(CalendarsCommand),
 
     #[command(subcommand)]
+    Appointments(AppointmentsCommand),
+
+    #[command(subcommand)]
     Users(UsersCommand),
 
     #[command(subcommand)]
@@ -706,6 +709,71 @@ pub struct CalendarFreeSlotsArgs {
 
     #[arg(long, default_value_t = false)]
     pub enable_look_busy: bool,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum AppointmentsCommand {
+    Create(AppointmentCreateArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct AppointmentCreateArgs {
+    #[arg(long)]
+    pub calendar: String,
+
+    #[arg(long)]
+    pub contact: String,
+
+    #[arg(long)]
+    pub starts_at: String,
+
+    #[arg(long)]
+    pub ends_at: String,
+
+    #[arg(long)]
+    pub title: Option<String>,
+
+    #[arg(long, value_enum, default_value_t = AppointmentStatusArg::Confirmed)]
+    pub status: AppointmentStatusArg,
+
+    #[arg(long)]
+    pub assigned_user: Option<String>,
+
+    #[arg(long)]
+    pub address: Option<String>,
+
+    #[arg(long)]
+    pub meeting_location_type: Option<String>,
+
+    #[arg(long)]
+    pub timezone: Option<String>,
+
+    #[arg(long, default_value_t = false)]
+    pub ignore_date_range: bool,
+
+    #[arg(long = "no-notify", default_value_t = true, action = clap::ArgAction::SetFalse)]
+    pub notify: bool,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
+
+    #[arg(long, default_value_t = false)]
+    pub skip_free_slot_check: bool,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+pub enum AppointmentStatusArg {
+    New,
+    Confirmed,
+}
+
+impl From<AppointmentStatusArg> for ghl::AppointmentStatus {
+    fn from(value: AppointmentStatusArg) -> Self {
+        match value {
+            AppointmentStatusArg::New => Self::New,
+            AppointmentStatusArg::Confirmed => Self::Confirmed,
+        }
+    }
 }
 
 #[derive(Debug, Subcommand)]
