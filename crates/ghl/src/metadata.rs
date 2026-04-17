@@ -303,6 +303,38 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             &["opportunities.get"],
         ),
         remote_pit(
+            "calendars.list",
+            "calendars list [--group <id>]",
+            "List calendars in the resolved location.",
+            "CalendarListResult",
+            "2",
+            &["calendars.list"],
+        ),
+        remote_pit(
+            "calendars.get",
+            "calendars get <calendar-id>",
+            "Fetch one calendar by id within the resolved location context.",
+            "CalendarGetResult",
+            "2",
+            &["calendars.get"],
+        ),
+        remote_pit(
+            "calendars.events",
+            "calendars events [--calendar <id>] [--date <date>]",
+            "List calendar event ids and counts for a date or time range without printing appointment bodies.",
+            "CalendarEventsResult",
+            "2",
+            &["calendars.events"],
+        ),
+        remote_pit(
+            "calendars.free_slots",
+            "calendars free-slots --calendar <id> --date <date>",
+            "List free appointment slots for one calendar and date.",
+            "CalendarFreeSlotsResult",
+            "2",
+            &["calendars.free_slots"],
+        ),
+        remote_pit(
             "smoke.run",
             "smoke run [--limit <n>] [--skip-optional]",
             "Run safe read-only smoke checks against the selected profile and location without printing customer data.",
@@ -319,6 +351,10 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
                 "pipelines.list",
                 "opportunities.search",
                 "opportunities.get",
+                "calendars.list",
+                "calendars.get",
+                "calendars.events",
+                "calendars.free_slots",
             ],
         ),
         local(
@@ -449,6 +485,10 @@ mod tests {
         assert!(keys.contains(&"pipelines.get"));
         assert!(keys.contains(&"opportunities.search"));
         assert!(keys.contains(&"opportunities.get"));
+        assert!(keys.contains(&"calendars.list"));
+        assert!(keys.contains(&"calendars.get"));
+        assert!(keys.contains(&"calendars.events"));
+        assert!(keys.contains(&"calendars.free_slots"));
         assert!(keys.contains(&"smoke.run"));
         assert!(keys.contains(&"errors.list"));
         assert!(keys.contains(&"endpoints.coverage"));
@@ -476,6 +516,10 @@ mod tests {
                 | "pipelines.get"
                 | "opportunities.search"
                 | "opportunities.get"
+                | "calendars.list"
+                | "calendars.get"
+                | "calendars.events"
+                | "calendars.free_slots"
                 | "smoke.run" => {
                     assert!(!command.offline, "{}", command.command_key);
                     assert_eq!(command.auth_classes, vec!["pit".to_owned()]);

@@ -5,10 +5,10 @@ use std::io::{self, Read};
 
 use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
-    AuthCommand, AuthPitAddArgs, AuthPitCommand, Cli, Command, CommandsCommand, ConfigCommand,
-    ContactsCommand, ConversationsCommand, EndpointsCommand, ErrorsCommand, LocationsCommand,
-    OpportunitiesCommand, PipelinesCommand, ProfilePolicyCommand, ProfilePolicySetArgs,
-    ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs,
+    AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand, Cli, Command, CommandsCommand,
+    ConfigCommand, ContactsCommand, ConversationsCommand, EndpointsCommand, ErrorsCommand,
+    LocationsCommand, OpportunitiesCommand, PipelinesCommand, ProfilePolicyCommand,
+    ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -605,6 +605,130 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+
+        Command::Calendars(CalendarsCommand::List(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::CalendarListOptions {
+                group_id: args.group,
+                show_drafted: args.show_drafted,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::calendars_list_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::list_calendars(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Calendars(CalendarsCommand::Get(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::get_calendar_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.calendar_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::get_calendar(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        &args.calendar_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Calendars(CalendarsCommand::Events(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::CalendarEventsOptions {
+                calendar_id: args.calendar,
+                group_id: args.group,
+                user_id: args.user,
+                from: args.from,
+                to: args.to,
+                date: args.date,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::calendar_events_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::list_calendar_events(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Calendars(CalendarsCommand::FreeSlots(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = ghl::CalendarFreeSlotsOptions {
+                calendar_id: args.calendar,
+                date: args.date,
+                timezone: args.timezone,
+                user_id: args.user,
+                enable_look_busy: args.enable_look_busy,
+            };
+            if dry_run.is_some() {
+                print_success(
+                    ghl::calendar_free_slots_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::get_calendar_free_slots(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
         Command::Smoke(SmokeCommand::Run(args)) => {
             let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
             let options = smoke_options(args);
@@ -747,6 +871,9 @@ fn smoke_options(args: SmokeRunArgs) -> ghl::SmokeRunOptions {
         conversation_id: args.conversation_id,
         pipeline_id: args.pipeline_id,
         opportunity_id: args.opportunity_id,
+        calendar_id: args.calendar_id,
+        calendar_date: args.calendar_date,
+        calendar_timezone: args.calendar_timezone,
     }
 }
 
@@ -764,6 +891,7 @@ fn is_local_command(command: &Command, dry_run: Option<commands::DryRunMode>) ->
             | Command::Conversations(_)
             | Command::Pipelines(_)
             | Command::Opportunities(_)
+            | Command::Calendars(_)
             | Command::Smoke(_)
     )
 }
@@ -782,6 +910,7 @@ fn command_name(command: &Command) -> String {
         Command::Conversations(_) => "conversations".to_owned(),
         Command::Pipelines(_) => "pipelines".to_owned(),
         Command::Opportunities(_) => "opportunities".to_owned(),
+        Command::Calendars(_) => "calendars".to_owned(),
         Command::Smoke(_) => "smoke".to_owned(),
         Command::Completions(_) => "completions".to_owned(),
         Command::Man => "man".to_owned(),

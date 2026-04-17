@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_implemented_read_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 10);
-    assert_eq!(value["data"]["command_mapped_count"], 10);
-    assert_eq!(value["data"]["implemented_count"], 10);
+    assert_eq!(value["data"]["endpoint_count"], 14);
+    assert_eq!(value["data"]["command_mapped_count"], 14);
+    assert_eq!(value["data"]["implemented_count"], 14);
 }
 
 #[test]
@@ -802,6 +802,108 @@ fn opportunities_get_dry_run_requires_location_context() {
 }
 
 #[test]
+fn calendars_list_dry_run_uses_location_context() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "calendars",
+            "list",
+            "--group",
+            "group_123",
+            "--show-drafted",
+            "false",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(
+        value["data"]["path"],
+        "/calendars/?locationId=loc_123&groupId=group_123&showDrafted=false"
+    );
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn calendars_events_dry_run_builds_date_range_without_event_bodies() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "calendars",
+            "events",
+            "--calendar",
+            "cal_123",
+            "--date",
+            "2026-02-27",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["start_time"], 1772150400000u64);
+    assert_eq!(value["data"]["end_time"], 1772236800000u64);
+    assert_eq!(
+        value["data"]["path"],
+        "/calendars/events?locationId=loc_123&startTime=1772150400000&endTime=1772236800000&calendarId=cal_123"
+    );
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn calendars_free_slots_dry_run_builds_slot_query() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "calendars",
+            "free-slots",
+            "--calendar",
+            "cal_123",
+            "--date",
+            "2026-02-27",
+            "--timezone",
+            "America/Denver",
+            "--enable-look-busy",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(value["data"]["calendar_id"], "cal_123");
+    assert_eq!(
+        value["data"]["path"],
+        "/calendars/cal_123/free-slots?startDate=1772150400000&endDate=1772236800000&timezone=America%2FDenver&enableLookBusy=true"
+    );
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
 fn smoke_run_dry_run_reports_statuses_without_customer_data() {
     let temp = tempfile::tempdir().expect("tempdir");
     let output = ghl_cli()
@@ -827,6 +929,12 @@ fn smoke_run_dry_run_reports_statuses_without_customer_data() {
             "pipe_123",
             "--opportunity-id",
             "opp_123",
+            "--calendar-id",
+            "cal_123",
+            "--calendar-date",
+            "2026-02-27",
+            "--calendar-timezone",
+            "America/Denver",
         ])
         .assert()
         .success()
@@ -847,6 +955,16 @@ fn smoke_run_dry_run_reports_statuses_without_customer_data() {
     assert!(checks.iter().any(|check| check["name"] == "contacts.search"
         && check["status"] == "planned"
         && check["required"] == false));
+    assert!(checks.iter().any(|check| check["name"] == "calendars.list"
+        && check["status"] == "planned"
+        && check["required"] == true));
+    assert!(
+        checks
+            .iter()
+            .any(|check| check["name"] == "calendars.free_slots"
+                && check["status"] == "planned"
+                && check["required"] == false)
+    );
     assert!(!rendered.contains("person@example.com"));
 }
 
@@ -1025,6 +1143,26 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "opportunities.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "calendars.list")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "calendars.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "calendars.events")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "calendars.free_slots")
     );
     assert!(
         commands

@@ -11,6 +11,7 @@ description = "Core library for the unofficial Go High Level CLI."
 readme = "../../README.md"
 
 [dependencies]
+chrono.workspace = true
 dirs.workspace = true
 reqwest.workspace = true
 serde.workspace = true

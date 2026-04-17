@@ -4,6 +4,7 @@
 //! command metadata, endpoint manifest loading, and the stable error registry.
 
 pub mod auth;
+pub mod calendars;
 pub mod client;
 pub mod config;
 pub mod contacts;
@@ -24,6 +25,13 @@ pub mod surfaces;
 pub use auth::{
     AuthStatus, LocalPitList, PitAddResult, PitRemoveResult, add_pit, auth_status, list_local_pits,
     remove_local_pit,
+};
+pub use calendars::{
+    CalendarEventsDryRun, CalendarEventsOptions, CalendarEventsResult, CalendarFreeSlotsDryRun,
+    CalendarFreeSlotsOptions, CalendarFreeSlotsResult, CalendarGetDryRun, CalendarGetResult,
+    CalendarListDryRun, CalendarListOptions, CalendarListResult, calendar_events_dry_run,
+    calendar_free_slots_dry_run, calendars_list_dry_run, get_calendar, get_calendar_dry_run,
+    get_calendar_free_slots, list_calendar_events, list_calendars,
 };
 pub use client::{
     AuthClass, PitValidationResult, RawGetRequest, RawGetResponse, RawPostJsonRequest,

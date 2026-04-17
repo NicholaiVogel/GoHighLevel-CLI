@@ -14,6 +14,10 @@ The first implemented endpoint records are:
 - `pipelines.list`, used by read-only pipeline list and client-side pipeline get.
 - `opportunities.search`, used by read-only opportunity search.
 - `opportunities.get`, used by read-only opportunity get.
+- `calendars.list`, used by read-only calendar list.
+- `calendars.get`, used by read-only calendar get.
+- `calendars.events`, used by summary-only calendar event reads.
+- `calendars.free_slots`, used by read-only calendar availability reads.
 
 Manifest fields:
 

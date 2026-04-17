@@ -46,8 +46,12 @@ Implemented commands:
 - `ghl pipelines get <pipeline-id>`
 - `ghl opportunities search [--query <query>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--contact <contact-id>] [--status open|won|lost|abandoned|all] [--assigned-to <user-id>] [--limit <n>] [--page <n>] [--start-after-id <id>] [--start-after <cursor>]`
 - `ghl opportunities get <opportunity-id>`
-- `ghl smoke run [--limit <n>] [--skip-optional] [--contact-query <query>] [--contact-email <email>] [--contact-phone <phone>] [--contact-id <id>] [--conversation-id <id>] [--pipeline-id <id>] [--opportunity-id <id>]`
+- `ghl calendars list [--group <id>] [--show-drafted true|false]`
+- `ghl calendars get <calendar-id>`
+- `ghl calendars events [--calendar <id>] [--date <date>] [--from <datetime>] [--to <datetime>]`
+- `ghl calendars free-slots --calendar <id> --date <date> [--timezone <timezone>]`
+- `ghl smoke run [--limit <n>] [--skip-optional] [--contact-query <query>] [--contact-email <email>] [--contact-phone <phone>] [--contact-id <id>] [--conversation-id <id>] [--pipeline-id <id>] [--opportunity-id <id>] [--calendar-id <id>] [--calendar-date <date>] [--calendar-timezone <timezone>]`
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, opportunity notes, and smoke-run customer data are redacted from normal output.

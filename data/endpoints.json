@@ -9,7 +9,8 @@
     "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
     "references/ghl-internal-api-bible/15-pipelines/endpoints.md",
     "references/ghl-internal-api-bible/reporting/README.md",
-    "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts"
+    "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+    "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
   ],
   "status": "scaffold",
   "endpoints": [
@@ -182,6 +183,70 @@
       "phase": "2",
       "command_keys": ["opportunities.get"],
       "response_schema": "OpportunityGetResult"
+    },
+    {
+      "endpoint_key": "calendars.list",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/calendars/?locationId={location_id}&groupId={group_id}&showDrafted={show_drafted}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["calendars.list"],
+      "response_schema": "CalendarListResult"
+    },
+    {
+      "endpoint_key": "calendars.get",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/calendars/{calendar_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["calendars.get"],
+      "response_schema": "CalendarGetResult"
+    },
+    {
+      "endpoint_key": "calendars.events",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/calendars/events?locationId={location_id}&calendarId={calendar_id}&startTime={start_time}&endTime={end_time}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "medium",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["calendars.events"],
+      "response_schema": "CalendarEventsResult"
+    },
+    {
+      "endpoint_key": "calendars.free_slots",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/calendars/{calendar_id}/free-slots?startDate={start_date}&endDate={end_date}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "low",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["calendars.free_slots"],
+      "response_schema": "CalendarFreeSlotsResult"
     }
   ]
 }

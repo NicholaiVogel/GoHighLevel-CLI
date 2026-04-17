@@ -28,6 +28,9 @@ ghl --config-dir /tmp/ghl-cli-smoke pipelines get pipe_test --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke opportunities search --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke opportunities search --pipeline pipe_test --status open --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke opportunities get opp_test --dry-run=local
+ghl --config-dir /tmp/ghl-cli-smoke --location loc_test calendars list --dry-run=local
+ghl --config-dir /tmp/ghl-cli-smoke --location loc_test calendars events --calendar cal_test --date 2026-04-17 --dry-run=local
+ghl --config-dir /tmp/ghl-cli-smoke --location loc_test calendars free-slots --calendar cal_test --date 2026-04-17 --dry-run=local
 ghl --config-dir /tmp/ghl-cli-smoke --location loc_test --company company_test smoke run --dry-run=local --pretty
 ```
 
@@ -53,6 +56,7 @@ The required live checks are:
 - `pipelines.list`, sales pipelines are readable
 - `conversations.search`, conversation search is readable
 - `opportunities.search`, opportunity search is readable
+- `calendars.list`, calendar list is readable
 
 `locations.list` runs when company context is available. Pass `--company` or set
 a profile company id with `ghl profiles set-default-company <profile> <company-id>`.
@@ -66,6 +70,8 @@ ghl --profile default smoke run \
   --conversation-id <known-test-conversation-id> \
   --pipeline-id <known-test-pipeline-id> \
   --opportunity-id <known-test-opportunity-id> \
+  --calendar-id <known-test-calendar-id> \
+  --calendar-date 2026-04-17 \
   --pretty
 ```
 

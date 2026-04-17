@@ -39,7 +39,7 @@ agents a working CRM spine before we bolt on every last GHL subsystem.
 
 ## Implementation Status Snapshot
 
-Last updated: 2026-04-16 during the contact discovery and exact-filter hardening slice.
+Last updated: 2026-04-16 during the calendar read slice.
 
 Implemented so far:
 
@@ -53,12 +53,13 @@ Implemented so far:
 - Local PIT commands: `auth pit add`, `auth pit list-local`, `auth pit remove-local`, `auth pit validate`, and `auth status`.
 - Profile commands: list, show, set default, set default company, set default location, and policy show/set/reset.
 - HTTP client spine for `services` and `backend` surfaces with PIT auth headers, redacted response handling, explicit `raw request` GET, and read-only PIT validation through `GET /locations/{location_id}`.
-- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts list`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
+- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts list`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, `opportunities get`, `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
 - CRM read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
 - Conversation message bodies and preview bodies are redacted from normal response output.
 - Opportunity notes are redacted from normal response output.
 - Read-only `smoke run` validates auth, context, and safe CRM reads while printing only statuses, counts, and error codes.
 - `contacts list` provides summary-only contact discovery; exact email and phone filters use GHL's accepted filter-array shape.
+- `calendars events` returns event IDs/counts rather than appointment bodies; free-slot reads return availability slots.
 
 Remaining initial implementation priorities:
 
@@ -70,8 +71,7 @@ Remaining initial implementation priorities:
 - Per-location rate limiting, retries, and read-only caching.
 - Agent-safe write policy with dry-run, confirmation flags, and destructive
   guards.
-- Remaining initial command groups: calendars, workflows read, broader
-  contact/opportunity subcommands, and guarded messaging.
+- Remaining initial command groups: workflows read, broader contact/opportunity subcommands, appointment writes, and guarded messaging.
 
 ## 1. Product Summary
 
@@ -3373,7 +3373,7 @@ references.
 - Implement messaging dry-run, then guarded real send.
 - Implement opportunity search/get.
 - Implement pipeline list/get.
-- Implement calendars and appointments.
+- Implement appointment writes and broader calendar resources.
 - Implement pagination normalization for all MVP list commands.
 - Implement audit journal for MVP write commands and sensitive dry-runs.
 - Implement idempotency and duplicate-prevention preflights for contacts,

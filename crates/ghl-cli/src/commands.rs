@@ -109,6 +109,9 @@ pub enum Command {
     Opportunities(OpportunitiesCommand),
 
     #[command(subcommand)]
+    Calendars(CalendarsCommand),
+
+    #[command(subcommand)]
     Smoke(SmokeCommand),
 
     Completions(CompletionsArgs),
@@ -502,6 +505,71 @@ pub struct OpportunityGetArgs {
 }
 
 #[derive(Debug, Subcommand)]
+pub enum CalendarsCommand {
+    List(CalendarListArgs),
+    Get(CalendarGetArgs),
+    Events(CalendarEventsArgs),
+    FreeSlots(CalendarFreeSlotsArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct CalendarListArgs {
+    #[arg(long)]
+    pub group: Option<String>,
+
+    #[arg(long)]
+    pub show_drafted: Option<bool>,
+}
+
+#[derive(Debug, Args)]
+pub struct CalendarGetArgs {
+    pub calendar_id: String,
+}
+
+#[derive(Debug, Args)]
+pub struct CalendarEventsArgs {
+    #[arg(long)]
+    pub calendar: Option<String>,
+
+    #[arg(long)]
+    pub group: Option<String>,
+
+    #[arg(long)]
+    pub user: Option<String>,
+
+    /// RFC3339 datetime or epoch milliseconds. Must be paired with --to.
+    #[arg(long)]
+    pub from: Option<String>,
+
+    /// RFC3339 datetime or epoch milliseconds. Must be paired with --from.
+    #[arg(long)]
+    pub to: Option<String>,
+
+    /// UTC date range in YYYY-MM-DD format. Mutually exclusive with --from/--to.
+    #[arg(long)]
+    pub date: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct CalendarFreeSlotsArgs {
+    #[arg(long)]
+    pub calendar: String,
+
+    /// UTC date range in YYYY-MM-DD format.
+    #[arg(long)]
+    pub date: String,
+
+    #[arg(long)]
+    pub timezone: Option<String>,
+
+    #[arg(long)]
+    pub user: Option<String>,
+
+    #[arg(long, default_value_t = false)]
+    pub enable_look_busy: bool,
+}
+
+#[derive(Debug, Subcommand)]
 pub enum SmokeCommand {
     Run(SmokeRunArgs),
 }
@@ -534,6 +602,15 @@ pub struct SmokeRunArgs {
 
     #[arg(long)]
     pub opportunity_id: Option<String>,
+
+    #[arg(long)]
+    pub calendar_id: Option<String>,
+
+    #[arg(long)]
+    pub calendar_date: Option<String>,
+
+    #[arg(long)]
+    pub calendar_timezone: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]

@@ -15,6 +15,9 @@ pub struct SmokeRunOptions {
     pub conversation_id: Option<String>,
     pub pipeline_id: Option<String>,
     pub opportunity_id: Option<String>,
+    pub calendar_id: Option<String>,
+    pub calendar_date: Option<String>,
+    pub calendar_timezone: Option<String>,
 }
 
 impl Default for SmokeRunOptions {
@@ -29,6 +32,9 @@ impl Default for SmokeRunOptions {
             conversation_id: None,
             pipeline_id: None,
             opportunity_id: None,
+            calendar_id: None,
+            calendar_date: None,
+            calendar_timezone: None,
         }
     }
 }
@@ -212,6 +218,7 @@ fn smoke_run_inner(
         location_override,
         limit,
     ));
+    checks.push(check_calendars_list(paths, profile_name, location_override));
 
     if !options.skip_optional {
         push_optional_live_checks(
@@ -372,6 +379,12 @@ fn push_planned_checks(
         Some("opportunities.search"),
         &format!("would GET /opportunities/search with limit {limit}"),
     ));
+    checks.push(planned(
+        "calendars.list",
+        true,
+        Some("calendars.list"),
+        "would GET /calendars/",
+    ));
 
     if options.skip_optional {
         return;
@@ -418,6 +431,27 @@ fn push_planned_checks(
         "opportunities.get",
         Some("opportunities.get"),
         "pass --opportunity-id",
+    );
+    optional_plan_or_skip(
+        checks,
+        options.calendar_id.is_some(),
+        "calendars.get",
+        Some("calendars.get"),
+        "pass --calendar-id",
+    );
+    optional_plan_or_skip(
+        checks,
+        options.calendar_date.is_some(),
+        "calendars.events",
+        Some("calendars.events"),
+        "pass --calendar-date",
+    );
+    optional_plan_or_skip(
+        checks,
+        options.calendar_id.is_some() && options.calendar_date.is_some(),
+        "calendars.free_slots",
+        Some("calendars.free_slots"),
+        "pass --calendar-id and --calendar-date",
     );
 }
 
@@ -520,6 +554,60 @@ fn push_optional_live_checks(
             false,
             Some("opportunities.get"),
             "pass --opportunity-id",
+        ));
+    }
+
+    if let Some(calendar_id) = options.calendar_id.as_deref() {
+        checks.push(check_calendar_get(
+            paths,
+            profile_name,
+            location_override,
+            calendar_id,
+        ));
+    } else {
+        checks.push(skipped(
+            "calendars.get",
+            false,
+            Some("calendars.get"),
+            "pass --calendar-id",
+        ));
+    }
+
+    if let Some(calendar_date) = options.calendar_date.as_deref() {
+        checks.push(check_calendar_events(
+            paths,
+            profile_name,
+            location_override,
+            options.calendar_id.clone(),
+            calendar_date,
+        ));
+    } else {
+        checks.push(skipped(
+            "calendars.events",
+            false,
+            Some("calendars.events"),
+            "pass --calendar-date",
+        ));
+    }
+
+    if let (Some(calendar_id), Some(calendar_date)) = (
+        options.calendar_id.as_deref(),
+        options.calendar_date.as_deref(),
+    ) {
+        checks.push(check_calendar_free_slots(
+            paths,
+            profile_name,
+            location_override,
+            calendar_id,
+            calendar_date,
+            options.calendar_timezone.clone(),
+        ));
+    } else {
+        checks.push(skipped(
+            "calendars.free_slots",
+            false,
+            Some("calendars.free_slots"),
+            "pass --calendar-id and --calendar-date",
         ));
     }
 }
@@ -674,6 +762,157 @@ fn check_opportunities_search(
         result,
         |body| count_array(body, "opportunities"),
     )
+}
+
+fn check_calendars_list(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+) -> SmokeCheck {
+    let result = crate::list_calendars(
+        paths,
+        profile_name,
+        location_override,
+        crate::CalendarListOptions {
+            group_id: None,
+            show_drafted: None,
+        },
+    );
+    match result {
+        Ok(result) if result.success => passed(
+            "calendars.list",
+            true,
+            Some("calendars.list"),
+            Some(result.status),
+            Some(result.count),
+        ),
+        Ok(result) => failed(
+            "calendars.list",
+            true,
+            Some("calendars.list"),
+            Some("ghl_api_error"),
+            "request completed but did not return a success status",
+        )
+        .with_http_status(result.status)
+        .with_count(Some(result.count)),
+        Err(error) => failed(
+            "calendars.list",
+            true,
+            Some("calendars.list"),
+            Some(error.code()),
+            error.to_string(),
+        ),
+    }
+}
+
+fn check_calendar_get(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    calendar_id: &str,
+) -> SmokeCheck {
+    let result = crate::get_calendar(paths, profile_name, location_override, calendar_id);
+    response_check(
+        "calendars.get",
+        false,
+        Some("calendars.get"),
+        result,
+        |_| None,
+    )
+}
+
+fn check_calendar_events(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    calendar_id: Option<String>,
+    calendar_date: &str,
+) -> SmokeCheck {
+    let result = crate::list_calendar_events(
+        paths,
+        profile_name,
+        location_override,
+        crate::CalendarEventsOptions {
+            calendar_id,
+            group_id: None,
+            user_id: None,
+            from: None,
+            to: None,
+            date: Some(calendar_date.to_owned()),
+        },
+    );
+    match result {
+        Ok(result) if result.success => passed(
+            "calendars.events",
+            false,
+            Some("calendars.events"),
+            Some(result.status),
+            Some(result.count),
+        ),
+        Ok(result) => failed(
+            "calendars.events",
+            false,
+            Some("calendars.events"),
+            Some("ghl_api_error"),
+            "request completed but did not return a success status",
+        )
+        .with_http_status(result.status)
+        .with_count(Some(result.count)),
+        Err(error) => failed(
+            "calendars.events",
+            false,
+            Some("calendars.events"),
+            Some(error.code()),
+            error.to_string(),
+        ),
+    }
+}
+
+fn check_calendar_free_slots(
+    paths: &crate::ConfigPaths,
+    profile_name: Option<&str>,
+    location_override: Option<&str>,
+    calendar_id: &str,
+    calendar_date: &str,
+    timezone: Option<String>,
+) -> SmokeCheck {
+    let result = crate::get_calendar_free_slots(
+        paths,
+        profile_name,
+        location_override,
+        crate::CalendarFreeSlotsOptions {
+            calendar_id: calendar_id.to_owned(),
+            date: calendar_date.to_owned(),
+            timezone,
+            user_id: None,
+            enable_look_busy: false,
+        },
+    );
+    match result {
+        Ok(result) if result.success => passed(
+            "calendars.free_slots",
+            false,
+            Some("calendars.free_slots"),
+            Some(result.status),
+            Some(result.slot_count),
+        ),
+        Ok(result) => failed(
+            "calendars.free_slots",
+            false,
+            Some("calendars.free_slots"),
+            Some("ghl_api_error"),
+            "request completed but did not return a success status",
+        )
+        .with_http_status(result.status)
+        .with_count(Some(result.slot_count)),
+        Err(error) => failed(
+            "calendars.free_slots",
+            false,
+            Some("calendars.free_slots"),
+            Some(error.code()),
+            error.to_string(),
+        ),
+    }
 }
 
 fn check_contacts_search(
@@ -848,6 +1087,9 @@ impl_smoke_response!(
     crate::PipelineListResult,
     crate::ConversationSearchResult,
     crate::OpportunitySearchResult,
+    crate::CalendarListResult,
+    crate::CalendarGetResult,
+    crate::CalendarFreeSlotsResult,
     crate::ContactSearchResult,
     crate::ContactGetResult,
     crate::ConversationGetResult,
@@ -1126,6 +1368,14 @@ mod tests {
                 "meta": { "total": 0 }
             }));
         });
+        server.mock(|when, then| {
+            when.method(GET)
+                .path("/calendars/")
+                .query_param("locationId", "loc_123");
+            then.status(200).json_body(json!({
+                "calendars": [{ "id": "cal_123", "name": "Discovery" }]
+            }));
+        });
 
         let temp = tempfile::tempdir().expect("tempdir");
         let paths = resolve_paths(Some(temp.path()));
@@ -1187,6 +1437,10 @@ mod tests {
             when.method(GET).path("/opportunities/search");
             then.status(200)
                 .json_body(json!({ "opportunities": [], "meta": { "total": 0 } }));
+        });
+        server.mock(|when, then| {
+            when.method(GET).path("/calendars/");
+            then.status(200).json_body(json!({ "calendars": [] }));
         });
 
         let temp = tempfile::tempdir().expect("tempdir");
