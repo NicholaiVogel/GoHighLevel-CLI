@@ -341,6 +341,22 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             &["contacts.get"],
         ),
         remote_pit(
+            "contacts.create",
+            "contacts create [--first-name <text>] [--email <email>] [--phone <phone>]",
+            "Create a contact through a guarded write path with dry-run, audit, idempotency, policy, confirmation, and exact duplicate checks.",
+            "ContactWriteResult|ContactWriteDryRun",
+            "2",
+            &["contacts.create", "contacts.search"],
+        ),
+        remote_pit(
+            "contacts.update",
+            "contacts update <contact-id> [--first-name <text>] [--email <email>] [--phone <phone>]",
+            "Update a contact through a guarded write path with dry-run, audit, idempotency, policy, and confirmation checks.",
+            "ContactWriteResult|ContactWriteDryRun",
+            "2",
+            &["contacts.update"],
+        ),
+        remote_pit(
             "conversations.search",
             "conversations search [--contact <contact-id>] [--query <query>] [--status <status>] [--limit <n>]",
             "Search conversations in the resolved location.",
@@ -635,7 +651,9 @@ fn remote_pit(
 fn policy_flags_for(command_key: &str) -> Vec<String> {
     match command_key {
         "profiles.policy.reset" | "idempotency.clear" => vec!["confirmation_required".to_owned()],
-        "appointments.create"
+        "contacts.create"
+        | "contacts.update"
+        | "appointments.create"
         | "appointments.update"
         | "appointments.cancel"
         | "appointments.notes.create"
@@ -680,6 +698,8 @@ mod tests {
         assert!(keys.contains(&"contacts.list"));
         assert!(keys.contains(&"contacts.search"));
         assert!(keys.contains(&"contacts.get"));
+        assert!(keys.contains(&"contacts.create"));
+        assert!(keys.contains(&"contacts.update"));
         assert!(keys.contains(&"conversations.search"));
         assert!(keys.contains(&"conversations.get"));
         assert!(keys.contains(&"conversations.messages"));
@@ -723,6 +743,8 @@ mod tests {
                 | "contacts.list"
                 | "contacts.search"
                 | "contacts.get"
+                | "contacts.create"
+                | "contacts.update"
                 | "conversations.search"
                 | "conversations.get"
                 | "conversations.messages"

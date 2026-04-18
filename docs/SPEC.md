@@ -53,12 +53,12 @@ Implemented so far:
 - Local PIT commands: `auth pit add`, `auth pit list-local`, `auth pit remove-local`, `auth pit validate`, and `auth status`.
 - Profile commands: list, show, set default, set default company, set default location, and policy show/set/reset.
 - HTTP client spine for `services` and `backend` surfaces with PIT auth headers, redacted response handling, explicit `raw request` GET, and read-only PIT validation through `GET /locations/{location_id}`.
-- First typed read-only CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts list`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, `opportunities get`, `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
+- First typed CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts list`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, guarded `contacts create`, guarded `contacts update`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, `opportunities get`, `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
 - CRM read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
 - Conversation message bodies and preview bodies are redacted from normal response output.
 - Opportunity notes are redacted from normal response output.
 - Read-only `smoke run` validates auth, context, and safe CRM reads while printing only statuses, counts, and error codes.
-- `contacts list` provides summary-only contact discovery; exact email and phone filters use GHL's accepted filter-array shape.
+- `contacts list` provides summary-only contact discovery; exact email and phone filters use GHL's accepted filter-array shape. Guarded contact create/update now use dry-run audit, confirmation, profile policy, and idempotency gates; create checks exact duplicate email/phone when provided.
 - `calendars events` returns event IDs/counts rather than appointment bodies; free-slot reads return availability slots.
 - Local audit journal spine: `audit list`, `audit show`, and `audit export`.
 - Local idempotency cache spine: stable redacted request hashes, key conflict checks, and `idempotency list/show/clear`.
@@ -2483,8 +2483,8 @@ ghl maintenance prune [--audit-before <datetime>] [--jobs-before <datetime>] [--
 ghl contacts list [--limit <n>]
 ghl contacts search [<query>] [--limit <n>] [--email <email>] [--phone <phone>]
 ghl contacts get <contact-id>
-ghl contacts create [...fields] [--dry-run]
-ghl contacts update <contact-id> [...fields] [--dry-run]
+ghl contacts create [--first-name <text>] [--last-name <text>] [--name <text>] [--email <email>] [--phone <phone>] [--tag <tag>] [--dry-run]
+ghl contacts update <contact-id> [--first-name <text>] [--last-name <text>] [--name <text>] [--email <email>] [--phone <phone>] [--tag <tag>] [--dry-run]
 ghl contacts upsert [...fields] [--dry-run]
 ghl contacts delete <contact-id> [--dry-run] --yes
 ghl contacts tags add <contact-id> <tag>... [--dry-run]
@@ -2502,7 +2502,7 @@ Requirements:
   search can return loose matches.
 - Search and get require resolved location context even when the upstream contact
   get endpoint only takes a contact id.
-- Create and upsert must check for duplicate email when email is present.
+- Create and upsert must check for duplicate email when email is present. Contact create/update are implemented now with dry-run audit, real-write confirmation, `allow_destructive`, idempotency keys, and email/phone redaction for contact write payloads. Create also checks exact duplicate email and phone when those fields are provided.
 - Delete requires `--yes` and `allow_destructive`.
 - Note bodies may be redacted in dry-run output.
 
@@ -3404,8 +3404,8 @@ references.
 ### 73.3 Phase 2: CRM core
 
 - Implement locations.
-- Implement contact list/search/get.
-- Implement broader contact writes, tags, tasks, notes, timeline, and export.
+- Implement contact list/search/get and guarded contact create/update.
+- Implement broader contact subresources: tags, tasks, notes, timeline, and export.
 - Implement conversation search/get/messages.
 - Implement broader conversation message reads, recordings, transcriptions, and attachment operations.
 - Implement messaging dry-run, then guarded real send.

@@ -9,11 +9,11 @@ use commands::{
     AppointmentNoteDeleteArgs, AppointmentNoteUpdateArgs, AppointmentNotesCommand,
     AppointmentNotesListArgs, AppointmentUpdateArgs, AppointmentsCommand, AuditCommand,
     AuditExportArgs, AuditListArgs, AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand,
-    CapabilitiesCommand, Cli, Command, CommandsCommand, ConfigCommand, ContactsCommand,
-    ConversationsCommand, DoctorCommand, EndpointsCommand, ErrorsCommand, IdempotencyCommand,
-    LocationsCommand, OpportunitiesCommand, PipelinesCommand, ProfilePolicyCommand,
-    ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs, TeamsCommand,
-    UserListArgs, UsersCommand,
+    CapabilitiesCommand, Cli, Command, CommandsCommand, ConfigCommand, ContactCreateArgs,
+    ContactUpdateArgs, ContactWriteFieldArgs, ContactsCommand, ConversationsCommand, DoctorCommand,
+    EndpointsCommand, ErrorsCommand, IdempotencyCommand, LocationsCommand, OpportunitiesCommand,
+    PipelinesCommand, ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand,
+    SmokeCommand, SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -508,6 +508,66 @@ fn execute(cli: Cli) -> Result<()> {
                         selected_profile.as_deref(),
                         selected_location.as_deref(),
                         &args.contact_id,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Contacts(ContactsCommand::Create(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = contact_create_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::create_contact_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::create_contact(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Contacts(ContactsCommand::Update(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = contact_update_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::update_contact_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::update_contact(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
                     )?,
                     format,
                     pretty,
@@ -1238,6 +1298,42 @@ impl RawDryRun {
             include_body: request.include_body,
             network: false,
         }
+    }
+}
+
+fn contact_create_options(args: ContactCreateArgs) -> ghl::ContactCreateOptions {
+    ghl::ContactCreateOptions {
+        fields: contact_write_fields(args.fields),
+        idempotency_key: args.idempotency_key,
+    }
+}
+
+fn contact_update_options(args: ContactUpdateArgs) -> ghl::ContactUpdateOptions {
+    ghl::ContactUpdateOptions {
+        contact_id: args.contact_id,
+        fields: contact_write_fields(args.fields),
+        idempotency_key: args.idempotency_key,
+    }
+}
+
+fn contact_write_fields(args: ContactWriteFieldArgs) -> ghl::ContactWriteFields {
+    ghl::ContactWriteFields {
+        first_name: args.first_name,
+        last_name: args.last_name,
+        name: args.name,
+        email: args.email,
+        phone: args.phone,
+        address1: args.address1,
+        city: args.city,
+        state: args.state,
+        country: args.country,
+        postal_code: args.postal_code,
+        website: args.website,
+        timezone: args.timezone,
+        company_name: args.company_name,
+        source: args.source,
+        tags: args.tags,
+        assigned_to: args.assigned_to,
     }
 }
 

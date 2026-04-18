@@ -86,7 +86,7 @@ It gives you:
 | PIT auth | Store local Private Integration Token references, list redacted previews, remove local refs |
 | Live validation | Validate PIT with `GET /locations/{location_id}` without printing the body |
 | Locations | Get by id, list by company, search with the current upstream email filter |
-| Contacts | Summary-only list, search by query/exact email/phone, get one contact by id |
+| Contacts | Summary-only list, search by query/exact email/phone, get one contact by id, and guarded create/update |
 | Conversations | Search by contact/query/status, get one conversation, list messages with bodies redacted |
 | Pipelines | List pipelines; get one pipeline by id from the location pipeline list |
 | Opportunities | Search by contact/pipeline/stage/status; get one opportunity by id |
@@ -251,6 +251,8 @@ ghl locations search <email> [--company <company-id>]
 ghl contacts list [--limit <n>]
 ghl contacts search [<query>] [--email <email>] [--phone <phone>] [--limit <n>]
 ghl contacts get <contact-id>
+ghl contacts create [--first-name <text>] [--last-name <text>] [--email <email>] [--phone <phone>] [--tag <tag>] [--dry-run=local] [--idempotency-key <key>]
+ghl contacts update <contact-id> [--first-name <text>] [--last-name <text>] [--email <email>] [--phone <phone>] [--tag <tag>] [--dry-run=local] [--idempotency-key <key>]
 
 ghl conversations search [--contact <contact-id>] [--query <query>] [--status all|read|unread|starred|recents] [--limit <n>]
 ghl conversations get <conversation-id>
@@ -390,7 +392,7 @@ Implemented now:
 - Read-only PIT validation.
 - Guarded raw GET.
 - Typed `locations get`, `locations list`, and `locations search`.
-- Typed `contacts list`, `contacts search`, and `contacts get`.
+- Typed `contacts list`, `contacts search`, `contacts get`, plus guarded `contacts create` and `contacts update`.
 - Typed `conversations search`, `conversations get`, and `conversations messages`.
 - Typed `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
 - Typed `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
@@ -408,7 +410,7 @@ Implemented now:
 
 Current focus:
 
-- broader guarded write coverage for contacts and opportunities
+- guarded opportunity writes
 - stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend

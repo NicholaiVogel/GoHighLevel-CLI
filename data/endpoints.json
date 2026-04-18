@@ -82,6 +82,40 @@
       "response_schema": "ContactGetResult"
     },
     {
+      "endpoint_key": "contacts.create",
+      "surface": "services",
+      "method": "POST",
+      "path_template": "/contacts/",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/contact-tools.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["contacts.create"],
+      "response_schema": "ContactWriteResult"
+    },
+    {
+      "endpoint_key": "contacts.update",
+      "surface": "services",
+      "method": "PUT",
+      "path_template": "/contacts/{contact_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/contact-tools.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["contacts.update"],
+      "response_schema": "ContactWriteResult"
+    },
+    {
       "endpoint_key": "conversations.search",
       "surface": "services",
       "method": "GET",

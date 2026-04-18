@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_implemented_read_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 25);
-    assert_eq!(value["data"]["command_mapped_count"], 25);
-    assert_eq!(value["data"]["implemented_count"], 25);
+    assert_eq!(value["data"]["endpoint_count"], 27);
+    assert_eq!(value["data"]["command_mapped_count"], 27);
+    assert_eq!(value["data"]["implemented_count"], 27);
 }
 
 #[test]
@@ -1315,6 +1315,16 @@ fn command_schema_includes_raw_and_pit_validate() {
     assert!(
         commands
             .iter()
+            .any(|command| command["command_key"] == "contacts.create")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "contacts.update")
+    );
+    assert!(
+        commands
+            .iter()
             .any(|command| command["command_key"] == "conversations.search")
     );
     assert!(
@@ -2134,6 +2144,124 @@ fn appointments_notes_delete_real_requires_confirmation() {
             "note_123",
             "--idempotency-key",
             "delete-note-1",
+        ])
+        .assert()
+        .failure()
+        .code(15)
+        .get_output()
+        .stderr
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["error"]["code"], "confirmation_required");
+}
+
+#[test]
+fn contacts_create_dry_run_redacts_pii_and_writes_audit() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "contacts",
+            "create",
+            "--first-name",
+            "John",
+            "--email",
+            "john@example.com",
+            "--phone",
+            "+15551234567",
+            "--tag",
+            "cli-smoke",
+            "--idempotency-key",
+            "create-contact-1",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let rendered = String::from_utf8_lossy(&output);
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "POST");
+    assert_eq!(value["data"]["path"], "/contacts/");
+    assert_eq!(value["data"]["request_body_json"]["email"], "[REDACTED]");
+    assert_eq!(value["data"]["request_body_json"]["phone"], "[REDACTED]");
+    assert_eq!(value["data"]["preflight"]["status"], "planned");
+    assert!(!rendered.contains("john@example.com"));
+    assert!(!rendered.contains("+15551234567"));
+
+    let audit = std::fs::read_to_string(temp.path().join("data/audit/audit.jsonl")).expect("audit");
+    assert!(audit.contains("contacts.create"));
+    assert!(!audit.contains("john@example.com"));
+    assert!(!audit.contains("+15551234567"));
+}
+
+#[test]
+fn contacts_update_dry_run_redacts_pii() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "contacts",
+            "update",
+            "contact_123",
+            "--first-name",
+            "Jane",
+            "--phone",
+            "+15557654321",
+            "--idempotency-key",
+            "update-contact-1",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "PUT");
+    assert_eq!(value["data"]["path"], "/contacts/contact_123");
+    assert_eq!(value["data"]["request_body_json"]["firstName"], "Jane");
+    assert_eq!(value["data"]["request_body_json"]["phone"], "[REDACTED]");
+}
+
+#[test]
+fn contacts_create_real_requires_confirmation() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "auth",
+            "pit",
+            "add",
+            "--token-stdin",
+            "--location",
+            "loc_123",
+        ])
+        .write_stdin("pit-secret\n")
+        .assert()
+        .success();
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "contacts",
+            "create",
+            "--first-name",
+            "John",
+            "--idempotency-key",
+            "create-contact-1",
         ])
         .assert()
         .failure()

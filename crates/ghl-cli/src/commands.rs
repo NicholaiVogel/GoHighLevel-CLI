@@ -480,6 +480,8 @@ pub enum ContactsCommand {
     List(ContactListArgs),
     Search(ContactSearchArgs),
     Get(ContactGetArgs),
+    Create(ContactCreateArgs),
+    Update(ContactUpdateArgs),
 }
 
 #[derive(Debug, Args)]
@@ -518,6 +520,77 @@ pub struct ContactSearchArgs {
 #[derive(Debug, Args)]
 pub struct ContactGetArgs {
     pub contact_id: String,
+}
+
+#[derive(Debug, Args)]
+pub struct ContactCreateArgs {
+    #[command(flatten)]
+    pub fields: ContactWriteFieldArgs,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct ContactUpdateArgs {
+    pub contact_id: String,
+
+    #[command(flatten)]
+    pub fields: ContactWriteFieldArgs,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct ContactWriteFieldArgs {
+    #[arg(long = "first-name")]
+    pub first_name: Option<String>,
+
+    #[arg(long = "last-name")]
+    pub last_name: Option<String>,
+
+    #[arg(long)]
+    pub name: Option<String>,
+
+    #[arg(long)]
+    pub email: Option<String>,
+
+    #[arg(long)]
+    pub phone: Option<String>,
+
+    #[arg(long)]
+    pub address1: Option<String>,
+
+    #[arg(long)]
+    pub city: Option<String>,
+
+    #[arg(long)]
+    pub state: Option<String>,
+
+    #[arg(long)]
+    pub country: Option<String>,
+
+    #[arg(long = "postal-code")]
+    pub postal_code: Option<String>,
+
+    #[arg(long)]
+    pub website: Option<String>,
+
+    #[arg(long)]
+    pub timezone: Option<String>,
+
+    #[arg(long = "company-name")]
+    pub company_name: Option<String>,
+
+    #[arg(long)]
+    pub source: Option<String>,
+
+    #[arg(long = "tag")]
+    pub tags: Vec<String>,
+
+    #[arg(long = "assigned-to")]
+    pub assigned_to: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]
