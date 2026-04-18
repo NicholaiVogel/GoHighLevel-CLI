@@ -62,7 +62,7 @@ Implemented so far:
 - `calendars events` returns event IDs/counts rather than appointment bodies; free-slot reads return availability slots.
 - Local audit journal spine: `audit list`, `audit show`, and `audit export`.
 - Local idempotency cache spine: stable redacted request hashes, key conflict checks, and `idempotency list/show/clear`.
-- Guarded appointment writes: `appointments create`, `appointments update`, and `appointments cancel` with dry-run audit, real-write confirmation, profile policy blocking, and idempotency. Create also performs a free-slot preflight.
+- Guarded appointment writes: `appointments create`, `appointments update`, `appointments cancel`, and appointment note create/update/delete with dry-run audit, real-write confirmation, profile policy blocking, and idempotency. Create also performs a free-slot preflight; appointment note reads redact body content.
 
 Remaining initial implementation priorities:
 
@@ -2586,7 +2586,7 @@ ghl appointments notes create <appointment-id> --body <text>|--from-file <path> 
 Requirements:
 
 - Appointment creation should validate start/end ordering locally.
-- Appointment create/update/cancel are implemented now for `POST /calendars/events/appointments`, `PUT /calendars/events/appointments/{eventId}`, and `DELETE /calendars/events/appointments/{eventId}`. Dry-run writes a redacted audit entry without network mutation. Real writes require global `--yes`, `allow_destructive`, and an idempotency key. Create also requires a free-slot preflight unless explicitly skipped.
+- Appointment create/update/cancel and appointment note list/create/update/delete are implemented now for the referenced calendar appointment endpoints. Dry-run writes a redacted audit entry without network mutation. Real writes require global `--yes`, `allow_destructive`, and an idempotency key. Create also requires a free-slot preflight unless explicitly skipped. Appointment note list returns note IDs/counts and redacted bodies.
 - Free-slot reads should be available before appointment creation.
 - Delete requires `--yes` and `allow_destructive`.
 - Timezone handling must preserve profile location timezone when known.
@@ -3411,10 +3411,10 @@ references.
 - Implement messaging dry-run, then guarded real send.
 - Implement opportunity search/get.
 - Implement pipeline list/get.
-- Implement appointment notes and broader calendar resources.
+- Implement broader calendar resources.
 - Implement pagination normalization for all MVP list commands.
 - Extend the implemented audit/idempotency write pattern from appointments into contacts, opportunities, and pipelines.
-- Implement appointment notes with the same guarded write pattern.
+- Extend guarded write coverage to contact notes/tasks and opportunity mutations.
 - Implement fixture capture and fixture scanning for MVP endpoint families.
 - Expand doctor shape checks and optional fixture-driven drift checks.
 - Expand capabilities with live permission probes when safe endpoints expose them.

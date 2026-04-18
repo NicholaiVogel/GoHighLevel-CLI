@@ -453,6 +453,38 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             &["appointments.delete"],
         ),
         remote_pit(
+            "appointments.notes.list",
+            "appointments notes list <appointment-id> [--limit <n>] [--offset <n>]",
+            "List appointment note IDs and redacted note bodies for one appointment.",
+            "AppointmentNotesListResult|AppointmentNotesListDryRun",
+            "2",
+            &["appointments.notes.list"],
+        ),
+        remote_pit(
+            "appointments.notes.create",
+            "appointments notes create <appointment-id> --body <text>|--from-file <path>",
+            "Create an appointment note through a guarded write path with dry-run, audit, idempotency, policy, and confirmation checks.",
+            "AppointmentNoteWriteResult|AppointmentNoteWriteDryRun",
+            "2",
+            &["appointments.notes.create"],
+        ),
+        remote_pit(
+            "appointments.notes.update",
+            "appointments notes update <appointment-id> <note-id> --body <text>|--from-file <path>",
+            "Update an appointment note through a guarded write path with dry-run, audit, idempotency, policy, and confirmation checks.",
+            "AppointmentNoteWriteResult|AppointmentNoteWriteDryRun",
+            "2",
+            &["appointments.notes.update"],
+        ),
+        remote_pit(
+            "appointments.notes.delete",
+            "appointments notes delete <appointment-id> <note-id>",
+            "Delete an appointment note through a guarded write path with dry-run, audit, idempotency, policy, and confirmation checks.",
+            "AppointmentNoteWriteResult|AppointmentNoteDeleteDryRun",
+            "2",
+            &["appointments.notes.delete"],
+        ),
+        remote_pit(
             "users.list",
             "users list [--skip <n>] [--limit <n>]",
             "List user ids and counts for team members in the resolved location without printing user bodies.",
@@ -603,7 +635,12 @@ fn remote_pit(
 fn policy_flags_for(command_key: &str) -> Vec<String> {
     match command_key {
         "profiles.policy.reset" | "idempotency.clear" => vec!["confirmation_required".to_owned()],
-        "appointments.create" | "appointments.update" | "appointments.cancel" => vec![
+        "appointments.create"
+        | "appointments.update"
+        | "appointments.cancel"
+        | "appointments.notes.create"
+        | "appointments.notes.update"
+        | "appointments.notes.delete" => vec![
             "allow_destructive".to_owned(),
             "confirmation_required".to_owned(),
             "idempotency_key_required".to_owned(),
@@ -657,6 +694,10 @@ mod tests {
         assert!(keys.contains(&"appointments.create"));
         assert!(keys.contains(&"appointments.update"));
         assert!(keys.contains(&"appointments.cancel"));
+        assert!(keys.contains(&"appointments.notes.list"));
+        assert!(keys.contains(&"appointments.notes.create"));
+        assert!(keys.contains(&"appointments.notes.update"));
+        assert!(keys.contains(&"appointments.notes.delete"));
         assert!(keys.contains(&"users.list"));
         assert!(keys.contains(&"users.get"));
         assert!(keys.contains(&"users.search"));
@@ -696,6 +737,10 @@ mod tests {
                 | "appointments.create"
                 | "appointments.update"
                 | "appointments.cancel"
+                | "appointments.notes.list"
+                | "appointments.notes.create"
+                | "appointments.notes.update"
+                | "appointments.notes.delete"
                 | "users.list"
                 | "users.get"
                 | "users.search"

@@ -45,7 +45,10 @@ pub fn redact_json(value: &Value) -> Value {
         Value::Object(map) => Value::Object(
             map.iter()
                 .map(|(key, value)| {
-                    if is_secret_key(key) {
+                    if key.eq_ignore_ascii_case("notes") && should_preserve_notes_collection(value)
+                    {
+                        (key.clone(), redact_json(value))
+                    } else if is_secret_key(key) {
                         (key.clone(), Value::String("[REDACTED]".to_owned()))
                     } else {
                         (key.clone(), redact_json(value))
@@ -56,6 +59,13 @@ pub fn redact_json(value: &Value) -> Value {
         Value::Array(items) => Value::Array(items.iter().map(redact_json).collect()),
         Value::String(value) => Value::String(redact_token_like(value)),
         other => other.clone(),
+    }
+}
+
+fn should_preserve_notes_collection(value: &Value) -> bool {
+    match value {
+        Value::Array(items) => items.is_empty() || items.iter().all(Value::is_object),
+        _ => false,
     }
 }
 
@@ -124,5 +134,31 @@ mod tests {
         assert_eq!(redacted["messages"][0]["messageType"], "TYPE_SMS");
         assert_eq!(redacted["messages"][0]["body"], "[REDACTED]");
         assert_eq!(redacted["lastMessageBody"], "[REDACTED]");
+    }
+
+    #[test]
+    fn note_object_collections_keep_ids_but_redact_body() {
+        let value = json!({
+            "notes": [
+                {
+                    "id": "note_123",
+                    "body": "private appointment note"
+                }
+            ]
+        });
+        let redacted = redact_json(&value);
+
+        assert_eq!(redacted["notes"][0]["id"], "note_123");
+        assert_eq!(redacted["notes"][0]["body"], "[REDACTED]");
+    }
+
+    #[test]
+    fn primitive_notes_arrays_are_redacted() {
+        let value = json!({
+            "notes": ["private note"]
+        });
+        let redacted = redact_json(&value);
+
+        assert_eq!(redacted["notes"], "[REDACTED]");
     }
 }

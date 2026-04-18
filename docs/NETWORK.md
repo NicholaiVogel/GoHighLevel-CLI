@@ -1,6 +1,6 @@
 # Network Behavior
 
-The CLI now supports explicit read-only network requests through PIT validation, `raw request` GET, typed location get/list/search, typed contact list/search/get, typed conversation search/get/messages, typed pipeline list/get, typed opportunity search/get, typed calendar list/get/events/free-slots, guarded appointment create/update/cancel, typed user/team-member list/get/search, `doctor api`, and smoke checks. Mutating raw methods are not implemented yet.
+The CLI now supports explicit read-only network requests through PIT validation, `raw request` GET, typed location get/list/search, typed contact list/search/get, typed conversation search/get/messages, typed pipeline list/get, typed opportunity search/get, typed calendar list/get/events/free-slots, guarded appointment create/update/cancel/notes, typed user/team-member list/get/search, `doctor api`, and smoke checks. Mutating raw methods are not implemented yet.
 
 Requests use the selected profile base URL, `Authorization: Bearer <token>`, `Accept: application/json`, `Content-Type: application/json`, `Version: 2021-07-28`, and a browser-compatible user agent. Authorization and token-looking values are redacted from diagnostics and outputs.
 

@@ -3,6 +3,7 @@
 //! Phase 0 intentionally contains only local scaffolding: config path resolution,
 //! command metadata, endpoint manifest loading, and the stable error registry.
 
+pub mod appointment_notes;
 pub mod appointments;
 pub mod audit;
 pub mod auth;
@@ -28,6 +29,14 @@ pub mod smoke;
 pub mod surfaces;
 pub mod users;
 
+pub use appointment_notes::{
+    AppointmentNoteDeleteDryRun, AppointmentNoteDeleteOptions, AppointmentNoteWriteDryRun,
+    AppointmentNoteWriteOptions, AppointmentNoteWriteResult, AppointmentNotesListDryRun,
+    AppointmentNotesListOptions, AppointmentNotesListResult, appointment_notes_list_dry_run,
+    create_appointment_note, create_appointment_note_dry_run, delete_appointment_note,
+    delete_appointment_note_dry_run, list_appointment_notes, update_appointment_note,
+    update_appointment_note_dry_run,
+};
 pub use appointments::{
     AppointmentCancelDryRun, AppointmentCancelOptions, AppointmentCreateDryRun,
     AppointmentCreateOptions, AppointmentCreateResult, AppointmentPreflightSummary,

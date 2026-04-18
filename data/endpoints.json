@@ -297,6 +297,70 @@
       "response_schema": "AppointmentWriteResult"
     },
     {
+      "endpoint_key": "appointments.notes.list",
+      "surface": "services",
+      "method": "GET",
+      "path_template": "/calendars/events/appointments/{appointment_id}/notes?limit={limit}&offset={offset}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "medium",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["appointments.notes.list"],
+      "response_schema": "AppointmentNotesListResult"
+    },
+    {
+      "endpoint_key": "appointments.notes.create",
+      "surface": "services",
+      "method": "POST",
+      "path_template": "/calendars/events/appointments/{appointment_id}/notes",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["appointments.notes.create"],
+      "response_schema": "AppointmentNoteWriteResult"
+    },
+    {
+      "endpoint_key": "appointments.notes.update",
+      "surface": "services",
+      "method": "PUT",
+      "path_template": "/calendars/events/appointments/{appointment_id}/notes/{note_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["appointments.notes.update"],
+      "response_schema": "AppointmentNoteWriteResult"
+    },
+    {
+      "endpoint_key": "appointments.notes.delete",
+      "surface": "services",
+      "method": "DELETE",
+      "path_template": "/calendars/events/appointments/{appointment_id}/notes/{note_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/calendar-tools.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["appointments.notes.delete"],
+      "response_schema": "AppointmentNoteWriteResult"
+    },
+    {
       "endpoint_key": "users.list",
       "surface": "services",
       "method": "GET",

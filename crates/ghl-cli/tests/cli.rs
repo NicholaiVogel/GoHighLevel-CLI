@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_implemented_read_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 21);
-    assert_eq!(value["data"]["command_mapped_count"], 21);
-    assert_eq!(value["data"]["implemented_count"], 21);
+    assert_eq!(value["data"]["endpoint_count"], 25);
+    assert_eq!(value["data"]["command_mapped_count"], 25);
+    assert_eq!(value["data"]["implemented_count"], 25);
 }
 
 #[test]
@@ -1385,6 +1385,26 @@ fn command_schema_includes_raw_and_pit_validate() {
     assert!(
         commands
             .iter()
+            .any(|command| command["command_key"] == "appointments.notes.list")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "appointments.notes.create")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "appointments.notes.update")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "appointments.notes.delete")
+    );
+    assert!(
+        commands
+            .iter()
             .any(|command| command["command_key"] == "users.list")
     );
     assert!(
@@ -1967,6 +1987,153 @@ fn appointments_cancel_real_requires_confirmation() {
             "appt_123",
             "--idempotency-key",
             "cancel-appt-1",
+        ])
+        .assert()
+        .failure()
+        .code(15)
+        .get_output()
+        .stderr
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["error"]["code"], "confirmation_required");
+}
+
+#[test]
+fn appointments_notes_list_dry_run_builds_request() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "appointments",
+            "notes",
+            "list",
+            "appt_123",
+            "--limit",
+            "5",
+            "--offset",
+            "2",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "GET");
+    assert_eq!(
+        value["data"]["path"],
+        "/calendars/events/appointments/appt_123/notes?limit=5&offset=2"
+    );
+    assert_eq!(value["data"]["network"], false);
+}
+
+#[test]
+fn appointments_notes_create_dry_run_redacts_body_and_writes_audit() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "appointments",
+            "notes",
+            "create",
+            "appt_123",
+            "--body",
+            "private note",
+            "--user",
+            "user_123",
+            "--idempotency-key",
+            "create-note-1",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "POST");
+    assert_eq!(value["data"]["request_body_json"]["body"], "[REDACTED]");
+    assert_eq!(value["data"]["network"], false);
+
+    let audit =
+        std::fs::read_to_string(temp.path().join("data/audit/audit.jsonl")).expect("audit journal");
+    assert!(audit.contains("appointments.notes.create"));
+    assert!(!audit.contains("private note"));
+}
+
+#[test]
+fn appointments_notes_update_dry_run_accepts_body_file() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let note_path = temp.path().join("note.txt");
+    std::fs::write(&note_path, "private note from file").expect("write note");
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "appointments",
+            "notes",
+            "update",
+            "appt_123",
+            "note_123",
+            "--from-file",
+        ])
+        .arg(&note_path)
+        .args(["--idempotency-key", "update-note-1"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "PUT");
+    assert_eq!(value["data"]["request_body_json"]["body"], "[REDACTED]");
+    assert_eq!(value["data"]["note_id"], "note_123");
+}
+
+#[test]
+fn appointments_notes_delete_real_requires_confirmation() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "auth",
+            "pit",
+            "add",
+            "--token-stdin",
+            "--location",
+            "loc_123",
+        ])
+        .write_stdin("pit-secret\n")
+        .assert()
+        .success();
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "appointments",
+            "notes",
+            "delete",
+            "appt_123",
+            "note_123",
+            "--idempotency-key",
+            "delete-note-1",
         ])
         .assert()
         .failure()

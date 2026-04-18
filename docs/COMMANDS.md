@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, read-only CRM/team commands, guarded appointment create/update/cancel, smoke diagnostics, and local audit/idempotency commands.
+Status: Phase 1 auth/profile and HTTP spine, read-only CRM/team commands, guarded appointment create/update/cancel/notes, smoke diagnostics, and local audit/idempotency commands.
 
 Machine-readable command metadata is available with:
 
@@ -67,6 +67,10 @@ Implemented commands:
 - `ghl appointments create --calendar <id> --contact <id> --starts-at <datetime> --ends-at <datetime> [--title <text>] [--status new|confirmed] [--assigned-user <id>] [--meeting-location-type <type>] [--timezone <tz>] [--idempotency-key <key>] [--skip-free-slot-check]`
 - `ghl appointments update <appointment-id> [--title <text>] [--status new|confirmed|cancelled|showed|no-show|invalid] [--starts-at <datetime>] [--ends-at <datetime>] [--notify|--no-notify] [--idempotency-key <key>]`
 - `ghl appointments cancel <appointment-id> [--idempotency-key <key>]`
+- `ghl appointments notes list <appointment-id> [--limit <n>] [--offset <n>]`
+- `ghl appointments notes create <appointment-id> --body <text>|--from-file <path> [--user <id>] [--idempotency-key <key>]`
+- `ghl appointments notes update <appointment-id> <note-id> --body <text>|--from-file <path> [--user <id>] [--idempotency-key <key>]`
+- `ghl appointments notes delete <appointment-id> <note-id> [--idempotency-key <key>]``
 - `ghl users list [--skip <n>] [--limit <n>]`
 - `ghl users get <user-id>`
 - `ghl users search --email <email>`
@@ -78,7 +82,7 @@ Implemented commands:
 
 Audit and idempotency commands are local-only. `audit list/show/export` reads the redacted JSONL journal under the resolved audit data directory. `idempotency list/show/clear` manages the local idempotency cache that future write commands will use to prevent accidental duplicate creates. `idempotency clear` requires `--yes` or global `--yes`.
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, guarded appointment create/update/cancel, user/team-member list/get/search, `doctor api`, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, guarded appointment create/update/cancel/notes, user/team-member list/get/search, `doctor api`, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
 
 
 ## Diagnostics
@@ -95,4 +99,4 @@ Network support is deliberately narrow: PIT validation, raw GET, read-only locat
 
 ## Appointments
 
-`ghl appointments create`, `ghl appointments update`, and `ghl appointments cancel` are guarded write commands. With `--dry-run=local`, they validate the local request shape, write a redacted sensitive dry-run audit entry, and perform no network mutation. Real writes require global `--yes`, profile policy `allow_destructive=true`, and `--idempotency-key <key>`. Create also requires a successful free-slot preflight unless `--skip-free-slot-check` is passed. Real writes record audit and idempotency entries.
+`ghl appointments create`, `ghl appointments update`, `ghl appointments cancel`, and appointment note create/update/delete are guarded write commands. With `--dry-run=local`, they validate the local request shape, write a redacted sensitive dry-run audit entry, and perform no network mutation. Real writes require global `--yes`, profile policy `allow_destructive=true`, and `--idempotency-key <key>`. Create also requires a successful free-slot preflight unless `--skip-free-slot-check` is passed. Real writes record audit and idempotency entries. `appointments notes list` is read-only and redacts note bodies in normal output.

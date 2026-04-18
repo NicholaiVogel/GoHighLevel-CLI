@@ -5,13 +5,15 @@ use std::io::{self, Read};
 
 use clap::{CommandFactory, Parser, error::ErrorKind};
 use commands::{
-    AppointmentCancelArgs, AppointmentCreateArgs, AppointmentUpdateArgs, AppointmentsCommand,
-    AuditCommand, AuditExportArgs, AuditListArgs, AuthCommand, AuthPitAddArgs, AuthPitCommand,
-    CalendarsCommand, CapabilitiesCommand, Cli, Command, CommandsCommand, ConfigCommand,
-    ContactsCommand, ConversationsCommand, DoctorCommand, EndpointsCommand, ErrorsCommand,
-    IdempotencyCommand, LocationsCommand, OpportunitiesCommand, PipelinesCommand,
-    ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand,
-    SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
+    AppointmentCancelArgs, AppointmentCreateArgs, AppointmentNoteCreateArgs,
+    AppointmentNoteDeleteArgs, AppointmentNoteUpdateArgs, AppointmentNotesCommand,
+    AppointmentNotesListArgs, AppointmentUpdateArgs, AppointmentsCommand, AuditCommand,
+    AuditExportArgs, AuditListArgs, AuthCommand, AuthPitAddArgs, AuthPitCommand, CalendarsCommand,
+    CapabilitiesCommand, Cli, Command, CommandsCommand, ConfigCommand, ContactsCommand,
+    ConversationsCommand, DoctorCommand, EndpointsCommand, ErrorsCommand, IdempotencyCommand,
+    LocationsCommand, OpportunitiesCommand, PipelinesCommand, ProfilePolicyCommand,
+    ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs, TeamsCommand,
+    UserListArgs, UsersCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -936,6 +938,129 @@ fn execute(cli: Cli) -> Result<()> {
             }
         }
 
+        Command::Appointments(AppointmentsCommand::Notes(AppointmentNotesCommand::List(args))) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = appointment_notes_list_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::appointment_notes_list_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                print_success(
+                    ghl::list_appointment_notes(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Appointments(AppointmentsCommand::Notes(AppointmentNotesCommand::Create(
+            args,
+        ))) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = appointment_note_create_options(args)?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::create_appointment_note_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::create_appointment_note(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Appointments(AppointmentsCommand::Notes(AppointmentNotesCommand::Update(
+            args,
+        ))) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = appointment_note_update_options(args)?;
+            if dry_run.is_some() {
+                print_success(
+                    ghl::update_appointment_note_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::update_appointment_note(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Appointments(AppointmentsCommand::Notes(AppointmentNotesCommand::Delete(
+            args,
+        ))) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = appointment_note_delete_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::delete_appointment_note_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::delete_appointment_note(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
         Command::Users(UsersCommand::List(args)) => {
             let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
             let options = user_list_options(args);
@@ -1226,6 +1351,67 @@ fn appointment_cancel_options(args: AppointmentCancelArgs) -> ghl::AppointmentCa
     ghl::AppointmentCancelOptions {
         appointment_id: args.appointment_id,
         idempotency_key: args.idempotency_key,
+    }
+}
+
+fn appointment_notes_list_options(
+    args: AppointmentNotesListArgs,
+) -> ghl::AppointmentNotesListOptions {
+    ghl::AppointmentNotesListOptions {
+        appointment_id: args.appointment_id,
+        limit: args.limit,
+        offset: args.offset,
+    }
+}
+
+fn appointment_note_create_options(
+    args: AppointmentNoteCreateArgs,
+) -> Result<ghl::AppointmentNoteWriteOptions> {
+    Ok(ghl::AppointmentNoteWriteOptions {
+        appointment_id: args.appointment_id,
+        note_id: None,
+        body: read_note_body(args.body, args.from_file)?,
+        user_id: args.user,
+        idempotency_key: args.idempotency_key,
+    })
+}
+
+fn appointment_note_update_options(
+    args: AppointmentNoteUpdateArgs,
+) -> Result<ghl::AppointmentNoteWriteOptions> {
+    Ok(ghl::AppointmentNoteWriteOptions {
+        appointment_id: args.appointment_id,
+        note_id: Some(args.note_id),
+        body: read_note_body(args.body, args.from_file)?,
+        user_id: args.user,
+        idempotency_key: args.idempotency_key,
+    })
+}
+
+fn appointment_note_delete_options(
+    args: AppointmentNoteDeleteArgs,
+) -> ghl::AppointmentNoteDeleteOptions {
+    ghl::AppointmentNoteDeleteOptions {
+        appointment_id: args.appointment_id,
+        note_id: args.note_id,
+        idempotency_key: args.idempotency_key,
+    }
+}
+
+fn read_note_body(body: Option<String>, from_file: Option<std::path::PathBuf>) -> Result<String> {
+    match (body, from_file) {
+        (Some(body), None) => Ok(body),
+        (None, Some(path)) => {
+            std::fs::read_to_string(&path).map_err(|source| GhlError::FileRead { path, source })
+        }
+        (None, None) => Err(GhlError::Validation {
+            message: "appointment note command requires --body <text> or --from-file <path>"
+                .to_owned(),
+        }),
+        (Some(_), Some(_)) => Err(GhlError::Validation {
+            message: "appointment note command accepts either --body or --from-file, not both"
+                .to_owned(),
+        }),
     }
 }
 

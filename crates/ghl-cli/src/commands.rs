@@ -716,6 +716,71 @@ pub enum AppointmentsCommand {
     Create(AppointmentCreateArgs),
     Update(AppointmentUpdateArgs),
     Cancel(AppointmentCancelArgs),
+    #[command(subcommand)]
+    Notes(AppointmentNotesCommand),
+}
+
+#[derive(Debug, Subcommand)]
+pub enum AppointmentNotesCommand {
+    List(AppointmentNotesListArgs),
+    Create(AppointmentNoteCreateArgs),
+    Update(AppointmentNoteUpdateArgs),
+    Delete(AppointmentNoteDeleteArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct AppointmentNotesListArgs {
+    pub appointment_id: String,
+
+    #[arg(long, default_value_t = 10)]
+    pub limit: u32,
+
+    #[arg(long, default_value_t = 0)]
+    pub offset: u32,
+}
+
+#[derive(Debug, Args)]
+pub struct AppointmentNoteCreateArgs {
+    pub appointment_id: String,
+
+    #[arg(long, conflicts_with = "from_file")]
+    pub body: Option<String>,
+
+    #[arg(long = "from-file")]
+    pub from_file: Option<PathBuf>,
+
+    #[arg(long)]
+    pub user: Option<String>,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct AppointmentNoteUpdateArgs {
+    pub appointment_id: String,
+    pub note_id: String,
+
+    #[arg(long, conflicts_with = "from_file")]
+    pub body: Option<String>,
+
+    #[arg(long = "from-file")]
+    pub from_file: Option<PathBuf>,
+
+    #[arg(long)]
+    pub user: Option<String>,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct AppointmentNoteDeleteArgs {
+    pub appointment_id: String,
+    pub note_id: String,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Args)]
