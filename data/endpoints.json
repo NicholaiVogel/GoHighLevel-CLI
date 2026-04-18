@@ -219,6 +219,41 @@
       "response_schema": "OpportunityGetResult"
     },
     {
+      "endpoint_key": "opportunities.create",
+      "surface": "services",
+      "method": "POST",
+      "path_template": "/opportunities/",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/ghl-internal-api-bible/14-crm-contacts/endpoints.md",
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/opportunity-tools.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/types/ghl-types.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["opportunities.create"],
+      "response_schema": "OpportunityWriteResult"
+    },
+    {
+      "endpoint_key": "opportunities.update",
+      "surface": "services",
+      "method": "PUT",
+      "path_template": "/opportunities/{opportunity_id}",
+      "auth_classes": ["pit"],
+      "source_refs": [
+        "references/Go-High-Level-MCP-2026-Complete/src/clients/ghl-api-client.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/tools/opportunity-tools.ts",
+        "references/Go-High-Level-MCP-2026-Complete/src/types/ghl-types.ts"
+      ],
+      "risk": "high",
+      "status": "implemented",
+      "phase": "2",
+      "command_keys": ["opportunities.update"],
+      "response_schema": "OpportunityWriteResult"
+    },
+    {
       "endpoint_key": "calendars.list",
       "surface": "services",
       "method": "GET",

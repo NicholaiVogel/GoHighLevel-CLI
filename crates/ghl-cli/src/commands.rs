@@ -679,6 +679,8 @@ pub struct PipelineGetArgs {
 pub enum OpportunitiesCommand {
     Search(OpportunitySearchArgs),
     Get(OpportunityGetArgs),
+    Create(OpportunityCreateArgs),
+    Update(OpportunityUpdateArgs),
 }
 
 #[derive(Debug, Args)]
@@ -717,6 +719,59 @@ pub struct OpportunitySearchArgs {
 #[derive(Debug, Args)]
 pub struct OpportunityGetArgs {
     pub opportunity_id: String,
+}
+
+#[derive(Debug, Args)]
+pub struct OpportunityCreateArgs {
+    #[arg(long)]
+    pub name: String,
+
+    #[arg(long)]
+    pub pipeline: String,
+
+    #[arg(long)]
+    pub stage: Option<String>,
+
+    #[arg(long)]
+    pub contact: String,
+
+    #[arg(long, value_enum, default_value_t = OpportunityStatusArg::Open)]
+    pub status: OpportunityStatusArg,
+
+    #[arg(long = "monetary-value", alias = "value")]
+    pub monetary_value: Option<f64>,
+
+    #[arg(long = "assigned-to")]
+    pub assigned_to: Option<String>,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct OpportunityUpdateArgs {
+    pub opportunity_id: String,
+
+    #[arg(long)]
+    pub name: Option<String>,
+
+    #[arg(long)]
+    pub pipeline: Option<String>,
+
+    #[arg(long)]
+    pub stage: Option<String>,
+
+    #[arg(long, value_enum)]
+    pub status: Option<OpportunityStatusArg>,
+
+    #[arg(long = "monetary-value", alias = "value")]
+    pub monetary_value: Option<f64>,
+
+    #[arg(long = "assigned-to")]
+    pub assigned_to: Option<String>,
+
+    #[arg(long)]
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]

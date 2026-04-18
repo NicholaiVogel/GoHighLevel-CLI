@@ -108,9 +108,9 @@ fn endpoint_coverage_reports_implemented_read_slice() {
     let value: Value = serde_json::from_slice(&output).expect("json");
 
     assert_eq!(value["data"]["status"], "scaffold");
-    assert_eq!(value["data"]["endpoint_count"], 27);
-    assert_eq!(value["data"]["command_mapped_count"], 27);
-    assert_eq!(value["data"]["implemented_count"], 27);
+    assert_eq!(value["data"]["endpoint_count"], 29);
+    assert_eq!(value["data"]["command_mapped_count"], 29);
+    assert_eq!(value["data"]["implemented_count"], 29);
 }
 
 #[test]
@@ -802,6 +802,147 @@ fn opportunities_get_dry_run_requires_location_context() {
 }
 
 #[test]
+fn opportunities_create_dry_run_builds_request_and_writes_audit() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "opportunities",
+            "create",
+            "--name",
+            "Roof Repair",
+            "--pipeline",
+            "pipe_123",
+            "--stage",
+            "stage_123",
+            "--contact",
+            "contact_123",
+            "--status",
+            "open",
+            "--monetary-value",
+            "50000",
+            "--assigned-to",
+            "user_123",
+            "--idempotency-key",
+            "create-opportunity-1",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "POST");
+    assert_eq!(value["data"]["path"], "/opportunities/");
+    assert_eq!(value["data"]["request_body_json"]["locationId"], "loc_123");
+    assert_eq!(value["data"]["request_body_json"]["name"], "Roof Repair");
+    assert_eq!(value["data"]["request_body_json"]["pipelineId"], "pipe_123");
+    assert_eq!(
+        value["data"]["request_body_json"]["pipelineStageId"],
+        "stage_123"
+    );
+    assert_eq!(
+        value["data"]["request_body_json"]["contactId"],
+        "contact_123"
+    );
+    assert_eq!(value["data"]["request_body_json"]["status"], "open");
+    assert_eq!(value["data"]["request_body_json"]["monetaryValue"], 50000.0);
+    assert_eq!(value["data"]["preflight"]["status"], "planned");
+
+    let audit = std::fs::read_to_string(temp.path().join("data/audit/audit.jsonl")).expect("audit");
+    assert!(audit.contains("opportunities.create"));
+}
+
+#[test]
+fn opportunities_update_dry_run_builds_request() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "--dry-run=local",
+            "--location",
+            "loc_123",
+            "opportunities",
+            "update",
+            "opp_123",
+            "--stage",
+            "stage_456",
+            "--status",
+            "won",
+            "--monetary-value",
+            "60000",
+            "--idempotency-key",
+            "update-opportunity-1",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["data"]["method"], "PUT");
+    assert_eq!(value["data"]["path"], "/opportunities/opp_123");
+    assert_eq!(
+        value["data"]["request_body_json"]["pipelineStageId"],
+        "stage_456"
+    );
+    assert_eq!(value["data"]["request_body_json"]["status"], "won");
+    assert_eq!(value["data"]["request_body_json"]["monetaryValue"], 60000.0);
+    assert_eq!(value["data"]["preflight"]["status"], "skipped");
+}
+
+#[test]
+fn opportunities_create_real_requires_confirmation() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "auth",
+            "pit",
+            "add",
+            "--token-stdin",
+            "--location",
+            "loc_123",
+        ])
+        .write_stdin("pit-secret\n")
+        .assert()
+        .success();
+
+    let output = ghl_cli()
+        .arg("--config-dir")
+        .arg(temp.path())
+        .args([
+            "opportunities",
+            "create",
+            "--name",
+            "Roof Repair",
+            "--pipeline",
+            "pipe_123",
+            "--contact",
+            "contact_123",
+            "--idempotency-key",
+            "create-opportunity-1",
+        ])
+        .assert()
+        .failure()
+        .code(15)
+        .get_output()
+        .stderr
+        .clone();
+    let value: Value = serde_json::from_slice(&output).expect("json");
+
+    assert_eq!(value["error"]["code"], "confirmation_required");
+}
+
+#[test]
 fn calendars_list_dry_run_uses_location_context() {
     let temp = tempfile::tempdir().expect("tempdir");
     let output = ghl_cli()
@@ -1356,6 +1497,16 @@ fn command_schema_includes_raw_and_pit_validate() {
         commands
             .iter()
             .any(|command| command["command_key"] == "opportunities.get")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "opportunities.create")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command["command_key"] == "opportunities.update")
     );
     assert!(
         commands

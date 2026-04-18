@@ -12,8 +12,9 @@ use commands::{
     CapabilitiesCommand, Cli, Command, CommandsCommand, ConfigCommand, ContactCreateArgs,
     ContactUpdateArgs, ContactWriteFieldArgs, ContactsCommand, ConversationsCommand, DoctorCommand,
     EndpointsCommand, ErrorsCommand, IdempotencyCommand, LocationsCommand, OpportunitiesCommand,
-    PipelinesCommand, ProfilePolicyCommand, ProfilePolicySetArgs, ProfilesCommand, RawCommand,
-    SmokeCommand, SmokeRunArgs, TeamsCommand, UserListArgs, UsersCommand,
+    OpportunityCreateArgs, OpportunityUpdateArgs, PipelinesCommand, ProfilePolicyCommand,
+    ProfilePolicySetArgs, ProfilesCommand, RawCommand, SmokeCommand, SmokeRunArgs, TeamsCommand,
+    UserListArgs, UsersCommand,
 };
 use ghl::{GhlError, Result};
 use output::{print_error, print_success};
@@ -782,6 +783,66 @@ fn execute(cli: Cli) -> Result<()> {
                 )
             }
         }
+        Command::Opportunities(OpportunitiesCommand::Create(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = opportunity_create_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::create_opportunity_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::create_opportunity(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
+        Command::Opportunities(OpportunitiesCommand::Update(args)) => {
+            let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
+            let options = opportunity_update_options(args);
+            if dry_run.is_some() {
+                print_success(
+                    ghl::update_opportunity_dry_run(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            } else {
+                if !global_yes {
+                    return Err(GhlError::ConfirmationRequired);
+                }
+                print_success(
+                    ghl::update_opportunity(
+                        &paths,
+                        selected_profile.as_deref(),
+                        selected_location.as_deref(),
+                        options,
+                    )?,
+                    format,
+                    pretty,
+                )
+            }
+        }
 
         Command::Calendars(CalendarsCommand::List(args)) => {
             let paths = ghl::resolve_paths_from_env(config_dir.as_deref())?;
@@ -1312,6 +1373,32 @@ fn contact_update_options(args: ContactUpdateArgs) -> ghl::ContactUpdateOptions 
     ghl::ContactUpdateOptions {
         contact_id: args.contact_id,
         fields: contact_write_fields(args.fields),
+        idempotency_key: args.idempotency_key,
+    }
+}
+
+fn opportunity_create_options(args: OpportunityCreateArgs) -> ghl::OpportunityCreateOptions {
+    ghl::OpportunityCreateOptions {
+        name: args.name,
+        pipeline_id: args.pipeline,
+        pipeline_stage_id: args.stage,
+        contact_id: args.contact,
+        status: args.status.into(),
+        monetary_value: args.monetary_value,
+        assigned_to: args.assigned_to,
+        idempotency_key: args.idempotency_key,
+    }
+}
+
+fn opportunity_update_options(args: OpportunityUpdateArgs) -> ghl::OpportunityUpdateOptions {
+    ghl::OpportunityUpdateOptions {
+        opportunity_id: args.opportunity_id,
+        name: args.name,
+        pipeline_id: args.pipeline,
+        pipeline_stage_id: args.stage,
+        status: args.status.map(Into::into),
+        monetary_value: args.monetary_value,
+        assigned_to: args.assigned_to,
         idempotency_key: args.idempotency_key,
     }
 }

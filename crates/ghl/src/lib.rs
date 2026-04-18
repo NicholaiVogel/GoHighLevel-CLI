@@ -113,9 +113,12 @@ pub use locations::{
 };
 pub use metadata::{CommandMetadata, CommandSchema, command_schema};
 pub use opportunities::{
-    OpportunityGetDryRun, OpportunityGetResult, OpportunitySearchDryRun, OpportunitySearchOptions,
-    OpportunitySearchResult, OpportunityStatus, get_opportunity, get_opportunity_dry_run,
-    opportunities_search_dry_run, search_opportunities,
+    OpportunityCreateOptions, OpportunityDuplicatePreflight, OpportunityGetDryRun,
+    OpportunityGetResult, OpportunitySearchDryRun, OpportunitySearchOptions,
+    OpportunitySearchResult, OpportunityStatus, OpportunityUpdateOptions, OpportunityWriteDryRun,
+    OpportunityWriteResult, create_opportunity, create_opportunity_dry_run, get_opportunity,
+    get_opportunity_dry_run, opportunities_search_dry_run, search_opportunities,
+    update_opportunity, update_opportunity_dry_run,
 };
 pub use pipelines::{
     PipelineGetDryRun, PipelineGetResult, PipelineListDryRun, PipelineListResult, get_pipeline,

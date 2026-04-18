@@ -92,8 +92,8 @@ mod tests {
         let manifest = bundled_manifest().expect("manifest");
         let coverage = endpoint_coverage(&manifest);
 
-        assert_eq!(coverage.endpoint_count, 27);
-        assert_eq!(coverage.command_mapped_count, 27);
-        assert_eq!(coverage.implemented_count, 27);
+        assert_eq!(coverage.endpoint_count, 29);
+        assert_eq!(coverage.command_mapped_count, 29);
+        assert_eq!(coverage.implemented_count, 29);
     }
 }

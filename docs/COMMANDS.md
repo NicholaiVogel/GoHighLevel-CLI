@@ -1,6 +1,6 @@
 # Command Reference
 
-Status: Phase 1 auth/profile and HTTP spine, read-only CRM/team commands, guarded contact create/update, guarded appointment create/update/cancel/notes, smoke diagnostics, and local audit/idempotency commands.
+Status: Phase 1 auth/profile and HTTP spine, read-only CRM/team commands, guarded contact create/update, guarded opportunity create/update, guarded appointment create/update/cancel/notes, smoke diagnostics, and local audit/idempotency commands.
 
 Machine-readable command metadata is available with:
 
@@ -62,6 +62,8 @@ Implemented commands:
 - `ghl pipelines get <pipeline-id>`
 - `ghl opportunities search [--query <query>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--contact <contact-id>] [--status open|won|lost|abandoned|all] [--assigned-to <user-id>] [--limit <n>] [--page <n>] [--start-after-id <id>] [--start-after <cursor>]`
 - `ghl opportunities get <opportunity-id>`
+- `ghl opportunities create --name <text> --pipeline <pipeline-id> --contact <contact-id> [--stage <stage-id>] [--status open|won|lost|abandoned] [--monetary-value <amount>] [--assigned-to <user-id>] [--idempotency-key <key>]`
+- `ghl opportunities update <opportunity-id> [--name <text>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--status open|won|lost|abandoned] [--monetary-value <amount>] [--assigned-to <user-id>] [--idempotency-key <key>]`
 - `ghl calendars list [--group <id>] [--show-drafted true|false]`
 - `ghl calendars get <calendar-id>`
 - `ghl calendars events [--calendar <id>] [--date <date>] [--from <datetime>] [--to <datetime>]`
@@ -82,9 +84,9 @@ Implemented commands:
 - `ghl completions bash|zsh|fish|powershell`
 - `ghl man`
 
-Audit and idempotency commands are local-only. `audit list/show/export` reads the redacted JSONL journal under the resolved audit data directory. `idempotency list/show/clear` manages the local idempotency cache that future write commands will use to prevent accidental duplicate creates. `idempotency clear` requires `--yes` or global `--yes`.
+Audit and idempotency commands are local-only. `audit list/show/export` reads the redacted JSONL journal under the resolved audit data directory. `idempotency list/show/clear` manages the local idempotency cache that guarded write commands use to prevent accidental duplicate mutations. `idempotency clear` requires `--yes` or global `--yes`.
 
-Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, guarded contact create/update, conversation search/get/messages, pipeline list/get, opportunity search/get, calendar list/get/events/free-slots, guarded appointment create/update/cancel/notes, user/team-member list/get/search, `doctor api`, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, contact write email/phone values, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
+Network support is deliberately narrow: PIT validation, raw GET, read-only location get/list/search, contact list/search/get, guarded contact create/update, conversation search/get/messages, pipeline list/get, opportunity search/get, guarded opportunity create/update, calendar list/get/events/free-slots, guarded appointment create/update/cancel/notes, user/team-member list/get/search, `doctor api`, and the read-only smoke runner only. Use `--dry-run=local` to preview network commands without credentials or network access. CRM commands require resolved location context from `--location` or the active profile. PIT tokens, contact write email/phone values, message bodies, calendar event bodies, user/team-member bodies, opportunity notes, and smoke-run customer data are redacted from normal output.
 
 
 ## Diagnostics
@@ -102,6 +104,10 @@ Network support is deliberately narrow: PIT validation, raw GET, read-only locat
 ## Contacts
 
 `ghl contacts create` and `ghl contacts update` are guarded write commands. With `--dry-run=local`, they validate the local request shape, write a redacted sensitive dry-run audit entry, and perform no network mutation. Real writes require global `--yes`, profile policy `allow_destructive=true`, and `--idempotency-key <key>`. Create runs exact duplicate checks for email and phone when those fields are provided. Contact write email and phone values are redacted in output and audit entries.
+
+## Opportunities
+
+`ghl opportunities create` and `ghl opportunities update` are guarded write commands. With `--dry-run=local`, they validate the local request shape, write a sensitive dry-run audit entry, and perform no network mutation. Real writes require global `--yes`, profile policy `allow_destructive=true`, and `--idempotency-key <key>`. Create runs a duplicate preflight against contact, pipeline, stage, status, and name before posting to `POST /opportunities/`. Update writes to `PUT /opportunities/{opportunity_id}` and rejects the read-only `all` status.
 
 ## Appointments
 

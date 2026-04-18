@@ -413,6 +413,22 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
             &["opportunities.get"],
         ),
         remote_pit(
+            "opportunities.create",
+            "opportunities create --name <text> --pipeline <pipeline-id> --contact <contact-id>",
+            "Create an opportunity through a guarded write path with dry-run, audit, idempotency, policy, confirmation, and contact/pipeline/name duplicate checks.",
+            "OpportunityWriteResult|OpportunityWriteDryRun",
+            "2",
+            &["opportunities.create", "opportunities.search"],
+        ),
+        remote_pit(
+            "opportunities.update",
+            "opportunities update <opportunity-id> [--stage <stage-id>] [--status <status>]",
+            "Update an opportunity through a guarded write path with dry-run, audit, idempotency, policy, and confirmation.",
+            "OpportunityWriteResult|OpportunityWriteDryRun",
+            "2",
+            &["opportunities.update"],
+        ),
+        remote_pit(
             "calendars.list",
             "calendars list [--group <id>]",
             "List calendars in the resolved location.",
@@ -549,6 +565,8 @@ pub fn implemented_commands() -> Vec<CommandMetadata> {
                 "pipelines.list",
                 "opportunities.search",
                 "opportunities.get",
+                "opportunities.create",
+                "opportunities.update",
                 "calendars.list",
                 "calendars.get",
                 "calendars.events",
@@ -653,6 +671,8 @@ fn policy_flags_for(command_key: &str) -> Vec<String> {
         "profiles.policy.reset" | "idempotency.clear" => vec!["confirmation_required".to_owned()],
         "contacts.create"
         | "contacts.update"
+        | "opportunities.create"
+        | "opportunities.update"
         | "appointments.create"
         | "appointments.update"
         | "appointments.cancel"
@@ -707,6 +727,8 @@ mod tests {
         assert!(keys.contains(&"pipelines.get"));
         assert!(keys.contains(&"opportunities.search"));
         assert!(keys.contains(&"opportunities.get"));
+        assert!(keys.contains(&"opportunities.create"));
+        assert!(keys.contains(&"opportunities.update"));
         assert!(keys.contains(&"calendars.list"));
         assert!(keys.contains(&"calendars.get"));
         assert!(keys.contains(&"calendars.events"));
@@ -752,6 +774,8 @@ mod tests {
                 | "pipelines.get"
                 | "opportunities.search"
                 | "opportunities.get"
+                | "opportunities.create"
+                | "opportunities.update"
                 | "calendars.list"
                 | "calendars.get"
                 | "calendars.events"

@@ -89,22 +89,21 @@ It gives you:
 | Contacts | Summary-only list, search by query/exact email/phone, get one contact by id, and guarded create/update |
 | Conversations | Search by contact/query/status, get one conversation, list messages with bodies redacted |
 | Pipelines | List pipelines; get one pipeline by id from the location pipeline list |
-| Opportunities | Search by contact/pipeline/stage/status; get one opportunity by id |
+| Opportunities | Search by contact/pipeline/stage/status, get one opportunity by id, and guarded create/update |
 | Calendars | List calendars, get one calendar, summarize events, and fetch free slots |
 | Appointments | Guarded appointment create/update/cancel and appointment notes with dry-run, audit, idempotency, policy, and confirmation gates |
 | Users and teams | Summary-only team-member list, get one user, and search by query or exact email |
 | Smoke | Read-only `smoke run` with status/count output and no customer data |
 | Diagnostics | Local/API doctor reports, capability checks, and redacted support bundles |
 | Audit | Local redacted audit journal list/show/export |
-| Idempotency | Local idempotency cache list/show/clear for guarded future writes |
+| Idempotency | Local idempotency cache list/show/clear for guarded writes |
 | Raw requests | Guarded read-only `GET` against `services` or `backend` surfaces |
 | Safety | Token redaction, owner-only local credential file on Unix, offline blocking |
 | Metadata | Command schema, endpoint manifest, error registry, shell completions |
 | Docs | Product spec, command reference, network notes, smoke guide, coverage plan |
 
 The current implementation is intentionally small. It can connect to a test
-location, prove the auth path works, perform the first read-only CRM and team-member slices, and keep the local audit/idempotency spine ready for guarded writes.
-All real GHL writes are still being built.
+location, prove the auth path works, perform the first CRM/team-member slices, and run guarded contact, opportunity, and appointment writes through dry-run, audit, idempotency, policy, and confirmation gates.
 
 ## Quick start
 
@@ -192,6 +191,8 @@ You can also fetch individual resources through the typed commands:
 ./target/debug/ghl --profile default pipelines get <pipeline-id> --pretty
 ./target/debug/ghl --profile default opportunities search --contact <contact-id> --pretty
 ./target/debug/ghl --profile default opportunities get <opportunity-id> --pretty
+./target/debug/ghl --profile default --yes opportunities create --name "Roof Repair" --pipeline <pipeline-id> --contact <contact-id> --idempotency-key <key> --pretty
+./target/debug/ghl --profile default --yes opportunities update <opportunity-id> --stage <stage-id> --status won --idempotency-key <key> --pretty
 ./target/debug/ghl --profile default calendars list --pretty
 ./target/debug/ghl --profile default calendars events --calendar <calendar-id> --date 2026-04-17 --pretty
 ./target/debug/ghl --profile default calendars free-slots --calendar <calendar-id> --date 2026-04-17 --timezone America/Denver --pretty
@@ -213,6 +214,7 @@ access, use local dry-run:
 ./target/debug/ghl --location <location-id> contacts search "Sarah" --dry-run=local
 ./target/debug/ghl --location <location-id> conversations search --dry-run=local
 ./target/debug/ghl --location <location-id> opportunities search --dry-run=local
+./target/debug/ghl --location <location-id> opportunities create --name "Roof Repair" --pipeline <pipeline-id> --contact <contact-id> --idempotency-key <key> --dry-run=local
 ./target/debug/ghl --location <location-id> calendars list --dry-run=local
 ./target/debug/ghl --location <location-id> users list --dry-run=local
 ./target/debug/ghl --location <location-id> users search --email person@example.com --dry-run=local
@@ -263,6 +265,8 @@ ghl pipelines get <pipeline-id>
 
 ghl opportunities search [--contact <contact-id>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--status open|won|lost|abandoned|all] [--limit <n>]
 ghl opportunities get <opportunity-id>
+ghl opportunities create --name <text> --pipeline <pipeline-id> --contact <contact-id> [--stage <stage-id>] [--status open|won|lost|abandoned] [--monetary-value <amount>] [--assigned-to <user-id>] [--dry-run=local] [--idempotency-key <key>]
+ghl opportunities update <opportunity-id> [--name <text>] [--pipeline <pipeline-id>] [--stage <stage-id>] [--status open|won|lost|abandoned] [--monetary-value <amount>] [--assigned-to <user-id>] [--dry-run=local] [--idempotency-key <key>]
 
 ghl calendars list [--group <id>]
 ghl calendars get <calendar-id>
@@ -394,7 +398,7 @@ Implemented now:
 - Typed `locations get`, `locations list`, and `locations search`.
 - Typed `contacts list`, `contacts search`, `contacts get`, plus guarded `contacts create` and `contacts update`.
 - Typed `conversations search`, `conversations get`, and `conversations messages`.
-- Typed `pipelines list`, `pipelines get`, `opportunities search`, and `opportunities get`.
+- Typed `pipelines list`, `pipelines get`, `opportunities search`, `opportunities get`, plus guarded `opportunities create` and `opportunities update`.
 - Typed `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
 - Guarded `appointments create`, `appointments update`, `appointments cancel`, and `appointments notes` create/update/delete with dry-run audit, real-write confirmation, policy blocking, and idempotency. Create also performs a free-slot preflight unless explicitly skipped. Appointment notes list redacts note bodies in normal output.
 - Typed `users list`, `users get`, `users search`, and `teams list`, with user list pagination applied client-side because the live endpoint only accepts `locationId`.
@@ -410,7 +414,7 @@ Implemented now:
 
 Current focus:
 
-- guarded opportunity writes
+- broader contact subresources such as tags, tasks, notes, and timeline
 - stronger pagination and response normalization for CRM commands
 - rate limiting, retries, and read-only cache
 - OS keyring credential backend

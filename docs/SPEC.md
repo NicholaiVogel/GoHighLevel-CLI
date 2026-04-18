@@ -53,10 +53,10 @@ Implemented so far:
 - Local PIT commands: `auth pit add`, `auth pit list-local`, `auth pit remove-local`, `auth pit validate`, and `auth status`.
 - Profile commands: list, show, set default, set default company, set default location, and policy show/set/reset.
 - HTTP client spine for `services` and `backend` surfaces with PIT auth headers, redacted response handling, explicit `raw request` GET, and read-only PIT validation through `GET /locations/{location_id}`.
-- First typed CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts list`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, guarded `contacts create`, guarded `contacts update`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, `opportunities get`, `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
+- First typed CRM commands: `locations get <location-id>`, `locations list`, `locations search <email>`, `contacts list`, `contacts search [<query>] [--email <email>] [--phone <phone>]`, `contacts get <contact-id>`, guarded `contacts create`, guarded `contacts update`, `conversations search`, `conversations get`, `conversations messages`, `pipelines list`, `pipelines get`, `opportunities search`, `opportunities get`, guarded `opportunities create`, guarded `opportunities update`, `calendars list`, `calendars get`, `calendars events`, and `calendars free-slots`.
 - CRM read commands require resolved location context from `--location` or the active profile and support local dry-run previews.
 - Conversation message bodies and preview bodies are redacted from normal response output.
-- Opportunity notes are redacted from normal response output.
+- Opportunity notes are redacted from normal response output. Guarded opportunity create/update now use dry-run audit, confirmation, profile policy, and idempotency gates; create performs a contact/pipeline/name duplicate preflight before posting.
 - Read-only `smoke run` validates auth, context, and safe CRM reads while printing only statuses, counts, and error codes.
 - `contacts list` provides summary-only contact discovery; exact email and phone filters use GHL's accepted filter-array shape. Guarded contact create/update now use dry-run audit, confirmation, profile policy, and idempotency gates; create checks exact duplicate email/phone when provided.
 - `calendars events` returns event IDs/counts rather than appointment bodies; free-slot reads return availability slots.
@@ -74,7 +74,7 @@ Remaining initial implementation priorities:
 - Per-location rate limiting, retries, and read-only caching.
 - Agent-safe write policy with dry-run, confirmation flags, and destructive
   guards.
-- Remaining initial command groups: workflows read, broader contact/opportunity subcommands, appointment writes, and guarded messaging.
+- Remaining initial command groups: workflows read, broader contact/opportunity subcommands, and guarded messaging.
 
 ## 1. Product Summary
 
@@ -2537,8 +2537,8 @@ Requirements:
 ```bash
 ghl opportunities search [--query <q>] [--pipeline <id>] [--stage <id>] [--contact <id>] [--status open|won|lost|abandoned|all] [--limit <n>]
 ghl opportunities get <opportunity-id>
-ghl opportunities create --name <name> --contact <id> --pipeline <id> --stage <id> [--value <amount>] [--dry-run]
-ghl opportunities update <opportunity-id> [...fields] [--dry-run]
+ghl opportunities create --name <name> --contact <id> --pipeline <id> [--stage <id>] [--status open|won|lost|abandoned] [--monetary-value <amount>] [--assigned-to <user-id>] [--dry-run=local] [--idempotency-key <key>]
+ghl opportunities update <opportunity-id> [--name <name>] [--pipeline <id>] [--stage <id>] [--status open|won|lost|abandoned] [--monetary-value <amount>] [--assigned-to <user-id>] [--dry-run=local] [--idempotency-key <key>]
 ghl opportunities move <opportunity-id> --stage <stage-id> [--dry-run]
 ghl opportunities delete <opportunity-id> [--dry-run] --yes
 ```
@@ -2562,6 +2562,9 @@ Pipeline rules from the reference:
 - `opportunities search` must use underscore query names such as `location_id`,
   `pipeline_id`, `pipeline_stage_id`, and `contact_id`.
 - Opportunity notes must be redacted in normal output.
+- `opportunities create` uses `POST /opportunities/`; real creates require global `--yes`, profile `allow_destructive=true`, and an idempotency key.
+- `opportunities create` performs a duplicate preflight using contact, pipeline, stage, status, and name.
+- `opportunities update` uses `PUT /opportunities/{opportunity_id}` and rejects `status=all`.
 - Do not include `locationId` in pipeline update bodies.
 - GHL auto-creates Won and Lost stages. Commands must not add them manually.
 - Existing stages require `id` during update. New stages omit `id`.
@@ -3413,8 +3416,8 @@ references.
 - Implement pipeline list/get.
 - Implement broader calendar resources.
 - Implement pagination normalization for all MVP list commands.
-- Extend the implemented audit/idempotency write pattern from appointments into contacts, opportunities, and pipelines.
-- Extend guarded write coverage to contact notes/tasks and opportunity mutations.
+- Extend the implemented audit/idempotency write pattern from contacts, opportunities, and appointments into remaining guarded mutations.
+- Extend guarded write coverage to contact notes/tasks and broader opportunity mutations such as move/delete/export.
 - Implement fixture capture and fixture scanning for MVP endpoint families.
 - Expand doctor shape checks and optional fixture-driven drift checks.
 - Expand capabilities with live permission probes when safe endpoints expose them.
